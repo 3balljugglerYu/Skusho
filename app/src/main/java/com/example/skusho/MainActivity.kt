@@ -11,30 +11,46 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.skusho.data.preferences.AppPreferences
+import com.example.skusho.domain.usecase.settings.GetOnboardingCompletedUseCase
+import com.example.skusho.domain.usecase.settings.SetOnboardingCompletedUseCase
 import com.example.skusho.ui.home.HomeScreen
 import com.example.skusho.ui.onboarding.OnboardingScreen
 import com.example.skusho.ui.settings.SettingsScreen
 import com.example.skusho.ui.theme.SkushoTheme
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    
+    @Inject
+    lateinit var getOnboardingCompletedUseCase: GetOnboardingCompletedUseCase
+    
+    @Inject
+    lateinit var setOnboardingCompletedUseCase: SetOnboardingCompletedUseCase
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             SkushoTheme {
-                SkushoApp()
+                SkushoApp(
+                    getOnboardingCompletedUseCase = getOnboardingCompletedUseCase,
+                    setOnboardingCompletedUseCase = setOnboardingCompletedUseCase
+                )
             }
         }
     }
 }
 
 @Composable
-fun SkushoApp() {
+fun SkushoApp(
+    getOnboardingCompletedUseCase: GetOnboardingCompletedUseCase,
+    setOnboardingCompletedUseCase: SetOnboardingCompletedUseCase
+) {
     val navController = rememberNavController()
-    val appPreferences = AppPreferences(androidx.compose.ui.platform.LocalContext.current)
-    val onboardingCompleted by appPreferences.onboardingCompleted.collectAsState(initial = false)
+    val onboardingCompleted by getOnboardingCompletedUseCase().collectAsState(initial = false)
     val scope = rememberCoroutineScope()
     
     NavHost(
@@ -45,7 +61,7 @@ fun SkushoApp() {
             OnboardingScreen(
                 onComplete = {
                     scope.launch {
-                        appPreferences.setOnboardingCompleted(true)
+                        setOnboardingCompletedUseCase(true)
                         navController.navigate("home") {
                             popUpTo("onboarding") { inclusive = true }
                         }

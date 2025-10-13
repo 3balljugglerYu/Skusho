@@ -42,7 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.skusho.R
 import com.example.skusho.service.CaptureService
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -62,7 +62,7 @@ private fun isMIUI(): Boolean {
 @Composable
 fun HomeScreen(
     onSettingsClick: () -> Unit,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()

@@ -1,4 +1,4 @@
-package com.example.skusho.data.preferences
+package com.example.skusho.data.source.local
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -10,10 +10,16 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_preferences")
 
-class AppPreferences(private val context: Context) {
+/**
+ * DataStore を使用したローカル設定データソース
+ */
+class AppPreferences @Inject constructor(
+    private val context: Context
+) {
     
     companion object {
         private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")

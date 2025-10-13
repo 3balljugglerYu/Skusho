@@ -5,16 +5,18 @@ import android.content.Intent
 import android.media.projection.MediaProjectionManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.skusho.data.preferences.AppPreferences
 import com.example.skusho.service.CaptureService
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class HomeViewModel(application: Application) : AndroidViewModel(application) {
-    
-    private val appPreferences = AppPreferences(application)
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    application: Application
+) : AndroidViewModel(application) {
     
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -72,4 +74,3 @@ data class HomeUiState(
     val isServiceRunning: Boolean = false,
     val shouldRequestMediaProjection: Boolean = false
 )
-
