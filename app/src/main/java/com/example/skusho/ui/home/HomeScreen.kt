@@ -222,10 +222,6 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "サービス実行中: ${uiState.isServiceRunning}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
                         text = "通知権限: ${notificationPermissionState?.status?.isGranted ?: "不要"}",
                         style = MaterialTheme.typography.bodySmall
                     )
