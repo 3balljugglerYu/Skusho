@@ -56,7 +56,7 @@ class CaptureService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        isRunning = true
+        Log.e("SkushoCapture", " CaptureService - onCreate() called")
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -86,6 +86,10 @@ class CaptureService : Service() {
                     startForeground(NOTIFICATION_ID, createNotification())
                     initMediaProjection(resultCode, resultData)
                     showOverlay()
+                    
+                    // サービス起動完了フラグを設定
+                    isRunning = true
+                    Log.e("SkushoCapture", " CaptureService - Service started, isRunning = true")
                 }
             }
         }
@@ -317,6 +321,12 @@ class CaptureService : Service() {
     }
     
     private fun stopCapture() {
+        Log.e("SkushoCapture", " CaptureService - stopCapture() called")
+        
+        // サービス停止フラグを先に設定
+        isRunning = false
+        Log.e("SkushoCapture", " CaptureService - isRunning = false")
+        
         overlayManager?.remove()
         overlayManager = null
         
@@ -328,14 +338,18 @@ class CaptureService : Service() {
         
         mediaProjection?.stop()
         mediaProjection = null
-        isRunning = false
+        
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+        Log.e("SkushoCapture", " CaptureService - Service stopped")
     }
     
     override fun onDestroy() {
         super.onDestroy()
-        stopCapture()
+        Log.e("SkushoCapture", " CaptureService - onDestroy() called")
+        if (isRunning) {
+            stopCapture()
+        }
     }
     
     override fun onBind(intent: Intent?): IBinder? = null

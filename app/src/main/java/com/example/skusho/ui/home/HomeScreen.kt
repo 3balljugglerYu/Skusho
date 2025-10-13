@@ -29,7 +29,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -64,6 +67,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     
     // オーバーレイ権限の状態
     var hasOverlayPermission by remember {
@@ -106,9 +110,17 @@ fun HomeScreen(
                     putExtra(CaptureService.EXTRA_RESULT_DATA, data)
                 }
                 ContextCompat.startForegroundService(context, intent)
+                
+                // サービスが完全に起動するまで少し待ってから状態をチェック
+                scope.launch {
+                    delay(500) // サービス起動を待つ
+                    viewModel.checkServiceStatus()
+                }
             }
+        } else {
+            // ユーザーがキャンセルした場合
+            viewModel.checkServiceStatus()
         }
-        viewModel.checkServiceStatus()
     }
     
     // オーバーレイ権限設定画面への遷移
@@ -126,9 +138,12 @@ fun HomeScreen(
         }
     }
     
-    // サービス状態の定期チェック
+    // サービス状態の定期チェック（1秒ごと）
     LaunchedEffect(Unit) {
-        viewModel.checkServiceStatus()
+        while (true) {
+            viewModel.checkServiceStatus()
+            delay(1000)
+        }
     }
     
     Scaffold { paddingValues ->

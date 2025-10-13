@@ -43,12 +43,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     fun onStopCaptureClick() {
+        // 即座にUI状態を更新
+        _uiState.value = _uiState.value.copy(
+            isServiceRunning = false
+        )
+        
         val context = getApplication<Application>()
         val intent = Intent(context, CaptureService::class.java).apply {
             action = CaptureService.ACTION_STOP
         }
         context.startService(intent)
-        checkServiceStatus()
+        
+        // 念のため少し待ってから再確認
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(100)
+            checkServiceStatus()
+        }
     }
     
     fun getMediaProjectionIntent(): Intent {
