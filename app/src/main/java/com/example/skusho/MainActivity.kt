@@ -74,6 +74,14 @@ fun SkushoApp(
             HomeScreen(
                 onSettingsClick = {
                     navController.navigate("settings")
+                },
+                onRestartTutorial = {
+                    scope.launch {
+                        setOnboardingCompletedUseCase(false)
+                        navController.navigate("onboarding") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    }
                 }
             )
         }

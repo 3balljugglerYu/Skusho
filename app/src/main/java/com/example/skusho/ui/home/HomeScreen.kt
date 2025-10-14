@@ -15,13 +15,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -58,16 +66,20 @@ private fun isMIUI(): Boolean {
            !Build.getRadioVersion().isNullOrEmpty() && Build.getRadioVersion().contains("MIUI")
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onSettingsClick: () -> Unit,
+    onRestartTutorial: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+    
+    // メニューの開閉状態
+    var menuExpanded by remember { mutableStateOf(false) }
     
     // オーバーレイ権限の状態
     var hasOverlayPermission by remember {
@@ -146,7 +158,82 @@ fun HomeScreen(
         }
     }
     
-    Scaffold { paddingValues ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.app_name)) },
+                actions = {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "メニュー"
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        // MIUI端末の場合はMIUI権限、それ以外はオーバーレイ権限
+                        if (isMIUI()) {
+                            DropdownMenuItem(
+                                text = { Text("MIUI権限設定を開く") },
+                                onClick = {
+                                    menuExpanded = false
+                                    try {
+                                        val intent = Intent("miui.intent.action.APP_PERM_EDITOR").apply {
+                                            setClassName("com.miui.securitycenter",
+                                                "com.miui.permcenter.permissions.PermissionsEditorActivity")
+                                            putExtra("extra_pkgname", context.packageName)
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.parse("package:${context.packageName}")
+                                        }
+                                        context.startActivity(intent)
+                                    }
+                                }
+                            )
+                        } else {
+                            DropdownMenuItem(
+                                text = { Text("オーバーレイ権限を開く") },
+                                onClick = {
+                                    menuExpanded = false
+                                    val intent = Intent(
+                                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse("package:${context.packageName}")
+                                    )
+                                    context.startActivity(intent)
+                                }
+                            )
+                        }
+                        
+                        // 通知権限（Android 13+のみ）
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            DropdownMenuItem(
+                                text = { Text("通知権限を開く") },
+                                onClick = {
+                                    menuExpanded = false
+                                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                    }
+                                    context.startActivity(intent)
+                                }
+                            )
+                        }
+                        
+                        DropdownMenuItem(
+                            text = { Text("チュートリアルを再確認") },
+                            onClick = {
+                                menuExpanded = false
+                                onRestartTutorial()
+                            }
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -155,15 +242,6 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // タイトル
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
             // ステータス表示
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -222,25 +300,9 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "サービス実行中: ${uiState.isServiceRunning}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
                         text = "通知権限: ${notificationPermissionState?.status?.isGranted ?: "不要"}",
                         style = MaterialTheme.typography.bodySmall
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            val newPermission = Settings.canDrawOverlays(context)
-                            println("DEBUG: Manual check - Old: $hasOverlayPermission, New: $newPermission")
-                            hasOverlayPermission = newPermission
-                            viewModel.checkServiceStatus()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("手動で権限再チェック")
-                    }
                     
                     // MIUI端末用の追加ガイド
                     if (!hasOverlayPermission && isMIUI()) {
@@ -282,8 +344,8 @@ fun HomeScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // 権限チェック表示
-            if (!hasOverlayPermission) {
+            // 権限チェック表示（非MIUI端末のみ）
+            if (!hasOverlayPermission && !isMIUI()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
