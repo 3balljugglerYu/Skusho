@@ -117,11 +117,8 @@ class OverlayManager(
                 MotionEvent.ACTION_UP -> {
                     Log.e(TAG, "Button ACTION_UP isDragging=$buttonIsDragging")
                     if (buttonIsDragging) {
-                        // ドラッグしていた場合は画面端にスナップ
-                        Log.e(TAG, "Button Snapping to edge")
-                        snapToEdge(params)
                         buttonIsDragging = false
-                        true // クリックイベントをキャンセル
+                        true // ドラッグ後はクリックをキャンセル
                     } else {
                         buttonIsDragging = false
                         false // OnClickListenerを発火させる
@@ -160,22 +157,6 @@ class OverlayManager(
             windowManager.removeView(overlayView)
             overlayView = null
             isShowing = false
-        }
-    }
-    
-    private fun snapToEdge(params: WindowManager.LayoutParams) {
-        val displayMetrics = context.resources.displayMetrics
-        val screenWidth = displayMetrics.widthPixels
-        
-        // 画面の左右どちらに近いか判定
-        params.x = if (params.x < screenWidth / 2) {
-            0 // 左端
-        } else {
-            screenWidth - (overlayView?.width ?: 0) // 右端
-        }
-        
-        overlayView?.let {
-            windowManager.updateViewLayout(it, params)
         }
     }
 }

@@ -10,8 +10,6 @@
         android:layout_height="56dp"
         android:background="@drawable/capture_button_background"
         android:src="@android:drawable/ic_menu_camera"
-        android:contentDescription="@string/capture_screenshot"
-        android:elevation="8dp" />
+        android:contentDescription="@string/capture_screenshot" />
 
 </FrameLayout>
-
