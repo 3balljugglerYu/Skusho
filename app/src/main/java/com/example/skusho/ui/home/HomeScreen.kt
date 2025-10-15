@@ -468,7 +468,7 @@ fun HomeScreen(
                         label = "オーバーレイ表示",
                         status = if (hasOverlayPermission) "許可済み" else "未許可",
                         statusColor = overlayStatusColor,
-                        supportingText = "撮影ボタンの表示に必要です"
+                        supportingText = "本アプリ（Skusho）を選択し、権限を許可して下さい\n撮影ボタンを表示するために必要です"
                     )
                     if (!hasOverlayPermission && !isMIUI()) {
                         Button(

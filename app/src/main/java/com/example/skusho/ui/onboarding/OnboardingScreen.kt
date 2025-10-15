@@ -282,7 +282,7 @@ private fun WelcomePage() {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "画面端の撮影ボタンをタップするだけで\nスクリーンショットを撮影できます",
+            text = "撮影ボタンをタップするだけで\nスクリーンショットを撮影できます",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MutedText
@@ -340,7 +340,7 @@ private fun OverlayPermissionPage(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "撮影ボタンを表示するために\n「他のアプリの上に重ねて表示」の権限が必要です",
+            text = "本アプリ（Skusho）を選択し、権限を許可して下さい\n撮影ボタンを表示するために必要です",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MutedText
@@ -583,7 +583,7 @@ private fun ReadyPage() {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "設定は以上です。\n「開始」ボタンをタップして\nスクリーンショット撮影を始めましょう！",
+            text = "設定は以上です。\nスクリーンショット撮影を始めましょう！",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MutedText
