@@ -8,16 +8,30 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -26,10 +40,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -42,13 +57,17 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.skusho.R
@@ -158,22 +177,38 @@ fun HomeScreen(
         }
     }
     
+    val cardShape = RoundedCornerShape(24.dp)
+    val scrollState = rememberScrollState()
+    val primaryBlue = Color(0xFF1565C0)
+    val secondaryBlue = Color(0xFF0D47A1)
+    val accentBlue = Color(0xFF1E88E5)
+    val paleBlue = Color(0xFFE3F2FD)
+    val softBlue = Color(0xFFF5F9FF)
+
     Scaffold(
+        containerColor = Color.White,
+        modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = primaryBlue
+                    )
+                },
                 actions = {
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(
                             imageVector = Icons.Default.Menu,
-                            contentDescription = "メニュー"
+                            contentDescription = "メニュー",
+                            tint = primaryBlue
                         )
                     }
                     DropdownMenu(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false }
                     ) {
-                        // MIUI端末の場合はMIUI権限、それ以外はオーバーレイ権限
                         if (isMIUI()) {
                             DropdownMenuItem(
                                 text = { Text("MIUI権限設定を開く") },
@@ -181,8 +216,10 @@ fun HomeScreen(
                                     menuExpanded = false
                                     try {
                                         val intent = Intent("miui.intent.action.APP_PERM_EDITOR").apply {
-                                            setClassName("com.miui.securitycenter",
-                                                "com.miui.permcenter.permissions.PermissionsEditorActivity")
+                                            setClassName(
+                                                "com.miui.securitycenter",
+                                                "com.miui.permcenter.permissions.PermissionsEditorActivity"
+                                            )
                                             putExtra("extra_pkgname", context.packageName)
                                         }
                                         context.startActivity(intent)
@@ -207,8 +244,6 @@ fun HomeScreen(
                                 }
                             )
                         }
-                        
-                        // 通知権限（Android 13+のみ）
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             DropdownMenuItem(
                                 text = { Text("通知権限を開く") },
@@ -221,7 +256,6 @@ fun HomeScreen(
                                 }
                             )
                         }
-                        
                         DropdownMenuItem(
                             text = { Text("チュートリアルを再確認") },
                             onClick = {
@@ -230,7 +264,12 @@ fun HomeScreen(
                             }
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = primaryBlue,
+                    actionIconContentColor = primaryBlue
+                )
             )
         }
     ) { paddingValues ->
@@ -238,129 +277,200 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(horizontal = 20.dp, vertical = 24.dp)
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // ステータス表示
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                shape = cardShape,
                 colors = CardDefaults.cardColors(
-                    containerColor = if (uiState.isServiceRunning) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    }
-                )
+                    containerColor = primaryBlue,
+                    contentColor = Color.White
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = if (uiState.isServiceRunning) {
-                            stringResource(R.string.status_waiting)
-                        } else {
-                            "停止中"
-                        },
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = if (uiState.isServiceRunning) {
-                            "浮遊ボタンをタップして撮影できます"
-                        } else {
-                            "撮影を開始してください"
-                        },
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // デバッグ情報表示
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "🐛 デバッグ情報",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "オーバーレイ権限: $hasOverlayPermission",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = "通知権限: ${notificationPermissionState?.status?.isGranted ?: "不要"}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    
-                    // MIUI端末用の追加ガイド
-                    if (!hasOverlayPermission && isMIUI()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "⚠️ MIUI端末の場合",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.error
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        val canCapture = hasOverlayPermission &&
+                            (notificationPermissionState == null || notificationPermissionState.status.isGranted)
+                        val isCapturing = uiState.isServiceRunning
+                        val statusIcon = when {
+                            isCapturing -> Icons.Default.CheckCircle
+                            canCapture -> Icons.Default.Info
+                            else -> Icons.Default.Warning
+                        }
+                        Icon(
+                            imageVector = statusIcon,
+                            contentDescription = null,
+                            modifier = Modifier.size(44.dp),
+                            tint = Color.White
                         )
-                        Text(
-                            text = "設定 → アプリ → アプリを管理 → Skusho → その他の権限 → 他のアプリの上に表示",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Button(
-                            onClick = {
-                                try {
-                                    val intent = Intent("miui.intent.action.APP_PERM_EDITOR").apply {
-                                        setClassName("com.miui.securitycenter", 
-                                                   "com.miui.permcenter.permissions.PermissionsEditorActivity")
-                                        putExtra("extra_pkgname", context.packageName)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    // フォールバック: 通常のアプリ設定画面
-                                    val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = Uri.parse("package:${context.packageName}")
-                                    }
-                                    context.startActivity(intent)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text("MIUI権限設定を開く")
+                            val statusText = when {
+                                isCapturing -> stringResource(R.string.status_capturing)
+                                canCapture -> "撮影可能"
+                                else -> "準備中"
+                            }
+                            Text(
+                                text = statusText,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                            val supportingText = when {
+                                isCapturing -> "カメラボタンをタップして撮影できます！"
+                                canCapture -> "撮影開始ボタンをタップしてください！"
+                                else -> "必要な権限を許可してください"
+                            }
+                            Text(
+                                text = supportingText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.85f)
+                            )
                         }
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 権限チェック表示（非MIUI端末のみ）
-            if (!hasOverlayPermission && !isMIUI()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+
+            Card(
+                shape = cardShape,
+                colors = CardDefaults.cardColors(
+                    containerColor = paleBlue,
+                    contentColor = secondaryBlue
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    val primaryButtonColors = ButtonDefaults.buttonColors(
+                        containerColor = accentBlue,
+                        contentColor = Color.White,
+                        disabledContainerColor = secondaryBlue.copy(alpha = 0.2f),
+                        disabledContentColor = secondaryBlue.copy(alpha = 0.4f)
+                    )
+                    val secondaryButtonColors = ButtonDefaults.buttonColors(
+                        containerColor = secondaryBlue,
+                        contentColor = Color.White
+                    )
+                    Text(
+                        text = "クイック操作",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = secondaryBlue
+                    )
+                    Text(
+                        text = "撮影サービスの開始・停止、設定画面への移動をまとめました。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = secondaryBlue.copy(alpha = 0.75f)
+                    )
+                    if (!uiState.isServiceRunning) {
+                        Button(
+                            onClick = {
+                                if (hasOverlayPermission) {
+                                    viewModel.onStartCaptureClick()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = hasOverlayPermission &&
+                                    (notificationPermissionState == null || notificationPermissionState.status.isGranted),
+                            colors = primaryButtonColors
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.start_capture),
+                                color = Color.White
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = { viewModel.onStopCaptureClick() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = secondaryButtonColors
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.stop_capture),
+                                color = Color.White
+                            )
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = onSettingsClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = secondaryBlue),
+                        border = BorderStroke(1.dp, secondaryBlue.copy(alpha = 0.5f))
                     ) {
-                        Text(
-                            text = stringResource(R.string.permission_overlay_required),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = null,
+                            tint = secondaryBlue
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.settings),
+                            color = secondaryBlue
+                        )
+                    }
+                }
+            }
+
+            Card(
+                shape = cardShape,
+                colors = CardDefaults.cardColors(
+                    containerColor = softBlue,
+                    contentColor = secondaryBlue
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    val permissionButtonColors = ButtonDefaults.buttonColors(
+                        containerColor = accentBlue,
+                        contentColor = Color.White,
+                        disabledContainerColor = secondaryBlue.copy(alpha = 0.2f),
+                        disabledContentColor = secondaryBlue.copy(alpha = 0.4f)
+                    )
+                    Text(
+                        text = "権限の状態",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = secondaryBlue
+                    )
+                    val overlayStatusColor = if (hasOverlayPermission) {
+                        accentBlue
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    }
+                    PermissionInfoRow(
+                        icon = if (hasOverlayPermission) Icons.Default.CheckCircle else Icons.Default.Warning,
+                        label = "オーバーレイ表示",
+                        status = if (hasOverlayPermission) "許可済み" else "未許可",
+                        statusColor = overlayStatusColor,
+                        supportingText = "撮影ボタンの表示に必要です"
+                    )
+                    if (!hasOverlayPermission && !isMIUI()) {
                         Button(
                             onClick = {
                                 val intent = Intent(
@@ -369,79 +479,164 @@ fun HomeScreen(
                                 )
                                 overlayPermissionLauncher.launch(intent)
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = permissionButtonColors
                         ) {
-                            Text(stringResource(R.string.grant_permission))
+                            Text(
+                                text = stringResource(R.string.grant_permission),
+                                color = Color.White
+                            )
                         }
                     }
+
+                    if (notificationPermissionState != null) {
+                        val granted = notificationPermissionState.status.isGranted
+                        val notificationColor = if (granted) {
+                            accentBlue
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        }
+                        PermissionInfoRow(
+                            icon = if (granted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                            label = "通知",
+                            status = if (granted) "許可済み" else "未許可",
+                            statusColor = notificationColor,
+                            supportingText = "キャプチャ状況を通知バーに表示します"
+                        )
+                        if (!granted) {
+                            Button(
+                                onClick = { notificationPermissionState.launchPermissionRequest() },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = permissionButtonColors
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.grant_permission),
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    } else {
+                        PermissionInfoRow(
+                            icon = Icons.Default.Info,
+                            label = "通知",
+                            status = "不要",
+                            statusColor = accentBlue,
+                            supportingText = "Android 12以下では追加の権限は不要です"
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
             }
-            
-            if (notificationPermissionState != null && !notificationPermissionState.status.isGranted) {
+            if (!hasOverlayPermission && isMIUI()) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    shape = cardShape,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f),
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null
+                            )
+                            Text(
+                                text = "MIUI端末で権限を有効にする",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                         Text(
-                            text = stringResource(R.string.permission_notification_required),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            text = "設定 → アプリ → アプリを管理 → Skusho → その他の権限 → 他のアプリの上に表示 を開き、権限を許可してください。",
+                            style = MaterialTheme.typography.bodySmall
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = {
-                                notificationPermissionState.launchPermissionRequest()
+                                try {
+                                    val intent = Intent("miui.intent.action.APP_PERM_EDITOR").apply {
+                                        setClassName(
+                                            "com.miui.securitycenter",
+                                            "com.miui.permcenter.permissions.PermissionsEditorActivity"
+                                        )
+                                        putExtra("extra_pkgname", context.packageName)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                    }
+                                    context.startActivity(intent)
+                                }
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.onErrorContainer,
+                                contentColor = MaterialTheme.colorScheme.errorContainer
+                            )
                         ) {
-                            Text(stringResource(R.string.grant_permission))
+                            Text("MIUI権限設定を開く")
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            
-            // メインボタン
-            if (!uiState.isServiceRunning) {
-                Button(
-                    onClick = {
-                        if (hasOverlayPermission) {
-                            viewModel.onStartCaptureClick()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = hasOverlayPermission &&
-                            (notificationPermissionState == null || notificationPermissionState.status.isGranted)
-                ) {
-                    Text(stringResource(R.string.start_capture))
-                }
-            } else {
-                Button(
-                    onClick = {
-                        viewModel.onStopCaptureClick()
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(R.string.stop_capture))
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 設定ボタン
-            OutlinedButton(
-                onClick = onSettingsClick,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.settings))
             }
         }
     }
 }
 
+@Composable
+private fun PermissionInfoRow(
+    icon: ImageVector,
+    label: String,
+    status: String,
+    statusColor: Color,
+    supportingText: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = statusColor,
+            modifier = Modifier.size(28.dp)
+        )
+        val contentColor = LocalContentColor.current
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = contentColor
+                )
+                Text(
+                    text = status,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = statusColor,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Text(
+                text = supportingText,
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor.copy(alpha = 0.7f)
+            )
+        }
+    }
+}

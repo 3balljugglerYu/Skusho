@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -52,6 +55,36 @@ private fun isMIUI(): Boolean {
            Build.BRAND.equals("Xiaomi", ignoreCase = true) ||
            !Build.getRadioVersion().isNullOrEmpty() && Build.getRadioVersion().contains("MIUI")
 }
+
+private val PrimaryBlue = Color(0xFF1565C0)
+private val SecondaryBlue = Color(0xFF0D47A1)
+private val AccentBlue = Color(0xFF1E88E5)
+private val PaleBlue = Color(0xFFE3F2FD)
+private val SoftBlue = Color(0xFFF6F9FF)
+private val MutedText = Color(0xFF5C6F82)
+private val WarningContainer = Color(0xFFFFE9E9)
+private val WarningContent = Color(0xFFB3261E)
+
+private val OutlineButtonBorder = BorderStroke(1.dp, SecondaryBlue.copy(alpha = 0.5f))
+
+@Composable
+private fun primaryButtonColors() = ButtonDefaults.buttonColors(
+    containerColor = AccentBlue,
+    contentColor = Color.White,
+    disabledContainerColor = AccentBlue.copy(alpha = 0.3f),
+    disabledContentColor = Color.White.copy(alpha = 0.7f)
+)
+
+@Composable
+private fun secondaryButtonColors() = ButtonDefaults.buttonColors(
+    containerColor = SecondaryBlue,
+    contentColor = Color.White
+)
+
+@Composable
+private fun outlineButtonColors() = ButtonDefaults.outlinedButtonColors(
+    contentColor = SecondaryBlue
+)
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -100,7 +133,7 @@ fun OnboardingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.White)
     ) {
         // メインコンテンツ
         HorizontalPager(
@@ -153,9 +186,9 @@ fun OnboardingScreen(
                         .clip(CircleShape)
                         .background(
                             if (index == pagerState.currentPage)
-                                MaterialTheme.colorScheme.primary
+                                AccentBlue
                             else
-                                MaterialTheme.colorScheme.surfaceVariant
+                                SoftBlue
                         )
                 )
             }
@@ -175,7 +208,9 @@ fun OnboardingScreen(
                         scope.launch {
                             pagerState.animateScrollToPage(pagerState.currentPage - 1)
                         }
-                    }
+                    },
+                    colors = outlineButtonColors(),
+                    border = OutlineButtonBorder
                 ) {
                     Text("前へ")
                 }
@@ -199,12 +234,16 @@ fun OnboardingScreen(
                             pagerState.animateScrollToPage(pagerState.currentPage + 1)
                         }
                     },
-                    enabled = canProceed
+                    enabled = canProceed,
+                    colors = primaryButtonColors()
                 ) {
                     Text("次へ")
                 }
             } else {
-                Button(onClick = onComplete) {
+                Button(
+                    onClick = onComplete,
+                    colors = primaryButtonColors()
+                ) {
                     Text("開始")
                 }
             }
@@ -238,21 +277,22 @@ private fun WelcomePage() {
         Text(
             text = "Skusho へようこそ",
             style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary,
+            color = PrimaryBlue,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "画面端の浮遊ボタンをタップするだけで\nスクリーンショットを撮影できます",
+            text = "画面端の撮影ボタンをタップするだけで\nスクリーンショットを撮影できます",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MutedText
         )
         Spacer(modifier = Modifier.height(32.dp))
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+                containerColor = PaleBlue,
+                contentColor = SecondaryBlue
             )
         ) {
             Column(
@@ -261,13 +301,13 @@ private fun WelcomePage() {
                 Text(
                     text = "✨ 主な機能",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = SecondaryBlue
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "• 他のアプリを使用中でも撮影可能\n• ドラッグ可能な浮遊ボタン\n• 自動的にギャラリーに保存",
+                    text = "• 他のアプリを使用中でも撮影可能\n• ドラッグ可能な撮影ボタン\n• 自動的にギャラリーに保存",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = SecondaryBlue.copy(alpha = 0.85f)
                 )
             }
         }
@@ -295,25 +335,23 @@ private fun OverlayPermissionPage(
         Text(
             text = "画面オーバーレイ権限",
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = PrimaryBlue,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "浮遊ボタンを表示するために\n「他のアプリの上に重ねて表示」の権限が必要です",
+            text = "撮影ボタンを表示するために\n「他のアプリの上に重ねて表示」の権限が必要です",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MutedText
         )
         Spacer(modifier = Modifier.height(32.dp))
         
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = if (hasPermission)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.errorContainer
+                containerColor = if (hasPermission) PaleBlue else WarningContainer,
+                contentColor = if (hasPermission) SecondaryBlue else WarningContent
             )
         ) {
             Column(
@@ -323,18 +361,22 @@ private fun OverlayPermissionPage(
                 Text(
                     text = if (hasPermission) "✅ 権限が許可されています" else "⚠️ 権限が必要です",
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (hasPermission)
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    else
-                        MaterialTheme.colorScheme.onErrorContainer
+                    color = if (hasPermission) SecondaryBlue else WarningContent
                 )
                 if (!hasPermission) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = onRequestPermission) {
+                    Button(
+                        onClick = onRequestPermission,
+                        colors = primaryButtonColors()
+                    ) {
                         Text("権限を許可")
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedButton(onClick = onCheckPermission) {
+                    OutlinedButton(
+                        onClick = onCheckPermission,
+                        colors = outlineButtonColors(),
+                        border = OutlineButtonBorder
+                    ) {
                         Text("権限状態を再確認")
                     }
                 }
@@ -365,7 +407,7 @@ private fun NotificationPermissionPage(
         Text(
             text = "通知権限",
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = PrimaryBlue,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -373,17 +415,15 @@ private fun NotificationPermissionPage(
             text = "サービスの状態確認と停止ボタンを\n通知バーに表示するために必要です",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MutedText
         )
         Spacer(modifier = Modifier.height(32.dp))
         
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = if (hasPermission)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.errorContainer
+                containerColor = if (hasPermission) PaleBlue else WarningContainer,
+                contentColor = if (hasPermission) SecondaryBlue else WarningContent
             )
         ) {
             Column(
@@ -393,14 +433,14 @@ private fun NotificationPermissionPage(
                 Text(
                     text = if (hasPermission) "✅ 権限が許可されています" else "⚠️ 権限が必要です",
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (hasPermission)
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    else
-                        MaterialTheme.colorScheme.onErrorContainer
+                    color = if (hasPermission) SecondaryBlue else WarningContent
                 )
                 if (!hasPermission && permissionState != null) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { permissionState.launchPermissionRequest() }) {
+                    Button(
+                        onClick = { permissionState.launchPermissionRequest() },
+                        colors = primaryButtonColors()
+                    ) {
                         Text("権限を許可")
                     }
                 }
@@ -431,7 +471,7 @@ private fun MIUIPermissionPage(
         Text(
             text = "MIUI 権限設定",
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = PrimaryBlue,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -439,17 +479,15 @@ private fun MIUIPermissionPage(
             text = "MIUI端末では専用の権限設定が必要です\n（オーバーレイ権限を含む）",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MutedText
         )
         Spacer(modifier = Modifier.height(32.dp))
         
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = if (hasPermission)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.tertiaryContainer
+                containerColor = if (hasPermission) PaleBlue else SoftBlue,
+                contentColor = SecondaryBlue
             )
         ) {
             Column(
@@ -460,31 +498,31 @@ private fun MIUIPermissionPage(
                     Text(
                         text = "✅ 権限が許可されています",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = SecondaryBlue
                     )
                 } else {
                     Text(
-                        text = "浮遊ボタンの表示に必要な権限：",
+                        text = "撮影ボタンの表示に必要な権限：",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                        color = SecondaryBlue
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "✅ バックグラウンドで実行中に新しいウィンドウを開く\n✅ ポップアップウィンドウの表示",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                        color = SecondaryBlue.copy(alpha = 0.9f)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "⚠️ この2つを許可することで、オーバーレイ権限も有効になります",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                        color = SecondaryBlue.copy(alpha = 0.75f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "※ 他の項目（ホーム画面ショートカット、ロック画面に表示）は不要です",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                        color = SecondaryBlue.copy(alpha = 0.75f)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
@@ -503,14 +541,17 @@ private fun MIUIPermissionPage(
                                 context.startActivity(intent)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = secondaryButtonColors()
                     ) {
                         Text("MIUI権限設定を開く")
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(
                         onClick = onCheckPermission,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = outlineButtonColors(),
+                        border = OutlineButtonBorder
                     ) {
                         Text("権限状態を再確認")
                     }
@@ -537,7 +578,7 @@ private fun ReadyPage() {
         Text(
             text = "準備完了！",
             style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary,
+            color = PrimaryBlue,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -545,14 +586,15 @@ private fun ReadyPage() {
             text = "設定は以上です。\n「開始」ボタンをタップして\nスクリーンショット撮影を始めましょう！",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MutedText
         )
         Spacer(modifier = Modifier.height(32.dp))
         
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                containerColor = SoftBlue,
+                contentColor = SecondaryBlue
             )
         ) {
             Column(
@@ -561,13 +603,13 @@ private fun ReadyPage() {
                 Text(
                     text = "📝 使い方",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = SecondaryBlue
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "1. 「撮影開始」をタップ\n2. 画面キャプチャの許可を承認\n3. 浮遊ボタンが表示されます\n4. 撮影したい画面でボタンをタップ！",
+                    text = "1. 「撮影開始」をタップ\n2. 画面キャプチャの許可を承認\n3. 撮影ボタンが表示されます\n4. 撮影したい画面でボタンをタップ！",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = SecondaryBlue.copy(alpha = 0.85f)
                 )
             }
         }

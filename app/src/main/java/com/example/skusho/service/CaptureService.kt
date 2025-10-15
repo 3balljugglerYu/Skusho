@@ -283,7 +283,7 @@ class CaptureService : Service() {
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("スクリーンショット待機中")
-            .setContentText("浮遊ボタンをタップしてキャプチャ")
+            .setContentText("撮影ボタンをタップしてキャプチャ")
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .setContentIntent(contentPendingIntent)
             .addAction(
