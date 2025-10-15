@@ -8,7 +8,7 @@
     <string name="permission_notification_required">通知の権限が必要です</string>
     <string name="grant_permission">権限を許可</string>
     <string name="onboarding_title">Skushoへようこそ</string>
-    <string name="onboarding_description">他のアプリを使用中でも、画面端の浮遊ボタンをタップしてスクリーンショットを撮影できます。</string>
+    <string name="onboarding_description">他のアプリを使用中でも、画面端の撮影ボタンをタップしてスクリーンショットを撮影できます。</string>
     <string name="onboarding_privacy">プライバシーについて</string>
     <string name="onboarding_privacy_description">このアプリはユーザーが明示的にボタンをタップした時のみスクリーンショットを撮影します。撮影した画像は端末のPictures/Screenshotsフォルダに保存され、外部へ送信されることはありません。</string>
     <string name="onboarding_accept">同意して開始</string>
