@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.skusho"
+    namespace = "com.yuhproducts.skusho"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.skusho"
+        applicationId = "com.yuhproducts.skusho"
         minSdk = 29
         targetSdk = 36
         versionCode = 1
