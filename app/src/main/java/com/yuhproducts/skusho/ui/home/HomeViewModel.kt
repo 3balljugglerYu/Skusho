@@ -213,7 +213,7 @@ class HomeViewModel @Inject constructor(
     }
     
     companion object {
-        private const val REWARD_UNLOCK_DURATION_MILLIS = 5 * 60 * 1000L
+        private const val REWARD_UNLOCK_DURATION_MILLIS = 12 * 60 * 60 * 1000L
         private const val REWARD_UNLOCK_MONITOR_INTERVAL_MILLIS = 1000L
     }
 }
