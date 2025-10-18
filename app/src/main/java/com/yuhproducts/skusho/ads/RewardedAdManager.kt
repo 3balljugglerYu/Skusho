@@ -60,7 +60,7 @@ class RewardedAdManager @Inject constructor(
     fun showAd(
         activity: Activity,
         onUserEarnedReward: (RewardItem) -> Unit,
-        onDismissed: (() -> Unit)? = null,
+        onAdClosed: ((rewardEarned: Boolean) -> Unit)? = null,
         onFailedToShow: (() -> Unit)? = null
     ) {
         val ad = rewardedAd ?: run {
@@ -68,10 +68,11 @@ class RewardedAdManager @Inject constructor(
             return
         }
 
+        var rewardEarned = false
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdDismissedFullScreenContent() {
                 rewardedAd = null
-                onDismissed?.invoke()
+                onAdClosed?.invoke(rewardEarned)
             }
 
             override fun onAdFailedToShowFullScreenContent(adError: com.google.android.gms.ads.AdError) {
@@ -85,6 +86,7 @@ class RewardedAdManager @Inject constructor(
         }
 
         ad.show(activity) { rewardItem ->
+            rewardEarned = true
             onUserEarnedReward(rewardItem)
         }
     }

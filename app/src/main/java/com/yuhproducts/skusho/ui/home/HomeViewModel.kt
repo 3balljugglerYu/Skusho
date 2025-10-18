@@ -125,15 +125,19 @@ class HomeViewModel @Inject constructor(
         }
         
         _uiState.update { it.copy(isRewardAdReady = false) }
+        var rewardEarned = false
         rewardedAdManager.showAd(
             activity = activity,
             onUserEarnedReward = {
-                val newExpiry = System.currentTimeMillis() + REWARD_UNLOCK_DURATION_MILLIS
-                viewModelScope.launch {
-                    settingsRepository.setCaptureUnlockExpiryMillis(newExpiry)
-                }
+                rewardEarned = true
             },
-            onDismissed = {
+            onAdClosed = { earned ->
+                if (earned && rewardEarned) {
+                    val newExpiry = System.currentTimeMillis() + REWARD_UNLOCK_DURATION_MILLIS
+                    viewModelScope.launch {
+                        settingsRepository.setCaptureUnlockExpiryMillis(newExpiry)
+                    }
+                }
                 loadRewardedAd()
             },
             onFailedToShow = {
