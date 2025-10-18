@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -27,6 +28,7 @@ class AppPreferences @Inject constructor(
         private val IMAGE_QUALITY = intPreferencesKey("image_quality")
         private val CAPTURE_SOUND_ENABLED = booleanPreferencesKey("capture_sound_enabled")
         private val CONTINUOUS_SHOT_COUNT = intPreferencesKey("continuous_shot_count")
+        private val CAPTURE_UNLOCK_EXPIRY = longPreferencesKey("capture_unlock_expiry")
     }
     
     // オンボーディング完了フラグ
@@ -83,5 +85,15 @@ class AppPreferences @Inject constructor(
             preferences[CONTINUOUS_SHOT_COUNT] = count.coerceIn(0, 5)
         }
     }
-}
 
+    // リワード広告視聴による撮影解放有効期限（Epoch millis）
+    val captureUnlockExpiryMillis: Flow<Long> = context.dataStore.data.map { preferences ->
+        preferences[CAPTURE_UNLOCK_EXPIRY] ?: 0L
+    }
+
+    suspend fun setCaptureUnlockExpiryMillis(expiryMillis: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[CAPTURE_UNLOCK_EXPIRY] = expiryMillis
+        }
+    }
+}

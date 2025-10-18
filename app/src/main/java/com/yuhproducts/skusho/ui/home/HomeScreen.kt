@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -40,6 +41,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Divider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -75,6 +77,7 @@ import com.yuhproducts.skusho.service.CaptureService
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.yuhproducts.skusho.util.TimeUtils
 
 /**
  * MIUI端末かどうかを判定
@@ -297,8 +300,10 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        val rewardUnlockActive = uiState.isRewardUnlockActive
                         val canCapture = hasOverlayPermission &&
-                            (notificationPermissionState == null || notificationPermissionState.status.isGranted)
+                            (notificationPermissionState == null || notificationPermissionState.status.isGranted) &&
+                            rewardUnlockActive
                         val isCapturing = uiState.isServiceRunning
                         val statusIcon = when {
                             isCapturing -> Icons.Default.CheckCircle
@@ -328,7 +333,10 @@ fun HomeScreen(
                             val supportingText = when {
                                 isCapturing -> "カメラボタンをタップして撮影できます！"
                                 canCapture -> "撮影開始ボタンをタップしてください！"
-                                else -> "必要な権限を許可してください"
+                                !rewardUnlockActive -> stringResource(R.string.unlock_required)
+                                !hasOverlayPermission -> "必要な権限を許可してください"
+                                notificationPermissionState != null && !notificationPermissionState.status.isGranted -> "通知の権限を許可してください"
+                                else -> "撮影を開始する準備を進めてください"
                             }
                             Text(
                                 text = supportingText,
@@ -382,7 +390,8 @@ fun HomeScreen(
                             },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = hasOverlayPermission &&
-                                    (notificationPermissionState == null || notificationPermissionState.status.isGranted),
+                                    (notificationPermissionState == null || notificationPermissionState.status.isGranted) &&
+                                    uiState.isRewardUnlockActive,
                             colors = primaryButtonColors
                         ) {
                             Icon(
@@ -523,6 +532,99 @@ fun HomeScreen(
                             statusColor = accentBlue,
                             supportingText = "Android 12以下では追加の権限は不要です"
                         )
+                    }
+
+                    Divider(color = secondaryBlue.copy(alpha = 0.1f))
+
+                    val rewardUnlockActive = uiState.isRewardUnlockActive
+                    val remainingMillis = uiState.rewardUnlockRemainingMillis
+                    val unlockStatusColor = if (rewardUnlockActive) accentBlue else MaterialTheme.colorScheme.error
+                    val remainingText = if (rewardUnlockActive) {
+                        stringResource(
+                            R.string.unlock_remaining_format,
+                            TimeUtils.formatDurationMillis(remainingMillis)
+                        )
+                    } else {
+                        stringResource(R.string.unlock_expired_notice)
+                    }
+                    val unlockLoadingMessage = stringResource(R.string.unlock_loading_message)
+                    val unlockLoadingLabel = stringResource(R.string.unlock_loading)
+                    val watchAdLabel = stringResource(R.string.watch_ad)
+                    val watchAdDisabledLabel = stringResource(R.string.unlock_active_button_text)
+                    val watchAdButtonEnabled = !uiState.isRewardAdLoading && !rewardUnlockActive
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = stringResource(R.string.watch_ad_to_unlock),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = secondaryBlue
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (rewardUnlockActive) Icons.Default.CheckCircle else Icons.Default.Info,
+                                contentDescription = null,
+                                tint = unlockStatusColor
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = if (rewardUnlockActive) {
+                                        stringResource(R.string.unlock_active)
+                                    } else {
+                                        stringResource(R.string.unlock_inactive)
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = unlockStatusColor
+                                )
+                                Text(
+                                    text = remainingText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = secondaryBlue.copy(alpha = 0.75f)
+                                )
+                            }
+                        }
+
+                        val activity = (context as? Activity)
+                        Button(
+                            onClick = {
+                                if (activity != null) {
+                                    viewModel.onWatchAdClick(
+                                        activity = activity,
+                                        onAdUnavailable = {
+                                            Toast.makeText(
+                                                context,
+                                                unlockLoadingMessage,
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    )
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        unlockLoadingMessage,
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = watchAdButtonEnabled,
+                            colors = permissionButtonColors
+                        ) {
+                            Text(
+                                text = if (uiState.isRewardAdLoading) {
+                                    unlockLoadingLabel
+                                } else if (rewardUnlockActive) {
+                                    watchAdDisabledLabel
+                                } else {
+                                    watchAdLabel
+                                },
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }

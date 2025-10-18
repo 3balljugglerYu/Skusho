@@ -7,6 +7,16 @@
     <string name="permission_overlay_required">画面オーバーレイの権限が必要です</string>
     <string name="permission_notification_required">通知の権限が必要です</string>
     <string name="grant_permission">権限を許可</string>
+    <string name="watch_ad_to_unlock">広告を見て撮影を開放する</string>
+    <string name="watch_ad">広告を見る</string>
+    <string name="unlock_active">撮影解放中</string>
+    <string name="unlock_inactive">未開放</string>
+    <string name="unlock_remaining_format">残り%1$s</string>
+    <string name="unlock_required">広告視聴で撮影を開放してください</string>
+    <string name="unlock_expired_notice">再度広告を見ると撮影が12時間有効になります</string>
+    <string name="unlock_loading">広告を読み込み中...</string>
+    <string name="unlock_loading_message">広告を読み込み中です。しばらくしてから再度お試しください。</string>
+    <string name="unlock_active_button_text">撮影解放中は視聴不要です</string>
     <string name="onboarding_title">Skushoへようこそ</string>
     <string name="onboarding_description">他のアプリを使用中でも、画面端の撮影ボタンをタップしてスクリーンショットを撮影できます。</string>
     <string name="onboarding_privacy">プライバシーについて</string>
@@ -17,4 +27,6 @@
     <string name="continuous_shot">連写</string>
     <string name="status_waiting">待機中</string>
     <string name="status_capturing">撮影中</string>
+    <string name="admob_app_id">ca-app-pub-2716829166250639~7777127281</string>
+    <string name="admob_reward_ad_unit_id">ca-app-pub-2716829166250639/8412192738</string>
 </resources>

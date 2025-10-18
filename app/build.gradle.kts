@@ -71,6 +71,9 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+
+    // Ads
+    implementation(libs.google.play.services.ads)
     
     // Test
     testImplementation(libs.junit)

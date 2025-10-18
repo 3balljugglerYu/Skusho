@@ -26,5 +26,8 @@ interface SettingsRepository {
     // 連写枚数
     fun getContinuousShotCount(): Flow<Int>
     suspend fun setContinuousShotCount(count: Int)
-}
 
+    // リワード広告視聴による撮影解放有効期限
+    fun getCaptureUnlockExpiryMillis(): Flow<Long>
+    suspend fun setCaptureUnlockExpiryMillis(expiryMillis: Long)
+}
