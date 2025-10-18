@@ -333,9 +333,9 @@ fun HomeScreen(
                             val supportingText = when {
                                 isCapturing -> "カメラボタンをタップして撮影できます！"
                                 canCapture -> "撮影開始ボタンをタップしてください！"
-                                !rewardUnlockActive -> stringResource(R.string.unlock_required)
                                 !hasOverlayPermission -> "必要な権限を許可してください"
                                 notificationPermissionState != null && !notificationPermissionState.status.isGranted -> "通知の権限を許可してください"
+                                !rewardUnlockActive -> stringResource(R.string.unlock_required)
                                 else -> "撮影を開始する準備を進めてください"
                             }
                             Text(
