@@ -46,5 +46,11 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun setContinuousShotCount(count: Int) {
         appPreferences.setContinuousShotCount(count)
     }
-}
 
+    override fun getCaptureUnlockExpiryMillis(): Flow<Long> =
+        appPreferences.captureUnlockExpiryMillis
+
+    override suspend fun setCaptureUnlockExpiryMillis(expiryMillis: Long) {
+        appPreferences.setCaptureUnlockExpiryMillis(expiryMillis)
+    }
+}
