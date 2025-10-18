@@ -23,12 +23,16 @@ import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import com.yuhproducts.skusho.MainActivity
 import com.yuhproducts.skusho.R
+import com.yuhproducts.skusho.data.source.local.AppPreferences
 import com.yuhproducts.skusho.util.MediaStoreHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.min
 import java.nio.ByteBuffer
 
 class CaptureService : Service() {
@@ -36,6 +40,8 @@ class CaptureService : Service() {
     private var mediaProjection: MediaProjection? = null
     private var overlayManager: OverlayManager? = null
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
+    private val appPreferences by lazy { AppPreferences(applicationContext) }
+    private var rewardUnlockMonitorJob: Job? = null
     
     // VirtualDisplayとImageReaderを保持（使い回し）
     private var virtualDisplay: VirtualDisplay? = null
@@ -51,6 +57,8 @@ class CaptureService : Service() {
         
         var isRunning = false
             private set
+        
+        private const val REWARD_UNLOCK_MONITOR_INTERVAL_MILLIS = 1000L
     }
     
     override fun onCreate() {
@@ -90,6 +98,7 @@ class CaptureService : Service() {
                     // サービス起動完了フラグを設定
                     isRunning = true
                     Log.e("SkushoCapture", " CaptureService - Service started, isRunning = true")
+                    startRewardUnlockMonitor()
                 }
             }
         }
@@ -327,6 +336,9 @@ class CaptureService : Service() {
         isRunning = false
         Log.e("SkushoCapture", " CaptureService - isRunning = false")
         
+        rewardUnlockMonitorJob?.cancel()
+        rewardUnlockMonitorJob = null
+        
         overlayManager?.remove()
         overlayManager = null
         
@@ -344,9 +356,37 @@ class CaptureService : Service() {
         Log.e("SkushoCapture", " CaptureService - Service stopped")
     }
     
+    private fun startRewardUnlockMonitor() {
+        rewardUnlockMonitorJob?.cancel()
+        rewardUnlockMonitorJob = serviceScope.launch(Dispatchers.Default) {
+            while (isActive) {
+                val expiryMillis = appPreferences.captureUnlockExpiryMillis.first()
+                if (!isRunning) {
+                    delay(REWARD_UNLOCK_MONITOR_INTERVAL_MILLIS)
+                    continue
+                }
+                if (expiryMillis <= 0L) {
+                    delay(REWARD_UNLOCK_MONITOR_INTERVAL_MILLIS)
+                    continue
+                }
+                val remaining = expiryMillis - System.currentTimeMillis()
+                if (remaining <= 0L) {
+                    Log.e("SkushoCapture", " CaptureService - Reward unlock expired during background")
+                    appPreferences.setCaptureUnlockExpiryMillis(0L)
+                    stopCapture()
+                    break
+                }
+                val waitMillis = min(remaining, REWARD_UNLOCK_MONITOR_INTERVAL_MILLIS)
+                delay(waitMillis)
+            }
+        }
+    }
+    
     override fun onDestroy() {
         super.onDestroy()
         Log.e("SkushoCapture", " CaptureService - onDestroy() called")
+        rewardUnlockMonitorJob?.cancel()
+        rewardUnlockMonitorJob = null
         if (isRunning) {
             stopCapture()
         }
