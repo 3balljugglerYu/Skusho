@@ -115,6 +115,18 @@ fun HomeScreen(
         null
     }
     
+    // 通知権限が拒否されたかどうかを追跡
+    var isNotificationPermissionDenied by remember { mutableStateOf(false) }
+    
+    // 通知権限の状態を監視して、拒否された場合を検知
+    LaunchedEffect(notificationPermissionState?.status) {
+        notificationPermissionState?.status?.let { status ->
+            if (status is com.google.accompanist.permissions.PermissionStatus.Denied && !status.shouldShowRationale) {
+                isNotificationPermissionDenied = true
+            }
+        }
+    }
+    
     // 画面が表示されるたびに権限状態をチェック
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -377,7 +389,7 @@ fun HomeScreen(
                         color = secondaryBlue
                     )
                     Text(
-                        text = "撮影サービスの開始・停止、設定画面への移動をまとめました。",
+                        text = "権限や条件を満たすと撮影を開始できます",
                         style = MaterialTheme.typography.bodySmall,
                         color = secondaryBlue.copy(alpha = 0.75f)
                     )
@@ -474,11 +486,38 @@ fun HomeScreen(
                     }
                     PermissionInfoRow(
                         icon = if (hasOverlayPermission) Icons.Default.CheckCircle else Icons.Default.Warning,
-                        label = "オーバーレイ表示",
-                        status = if (hasOverlayPermission) "許可済み" else "未許可",
+                        label = "スクショボタンの権限設定",
                         statusColor = overlayStatusColor,
-                        supportingText = "本アプリ（Skusho）を選択し、権限を許可して下さい\n撮影ボタンを表示するために必要です"
+                        supportingText = "画面にスクショボタンを表示するために 権限の許可が必要です"
                     )
+                    if (!hasOverlayPermission && isMIUI()) {
+                        Button(
+                            onClick = {
+                                try {
+                                    val intent = Intent("miui.intent.action.APP_PERM_EDITOR").apply {
+                                        setClassName(
+                                            "com.miui.securitycenter",
+                                            "com.miui.permcenter.permissions.PermissionsEditorActivity"
+                                        )
+                                        putExtra("extra_pkgname", context.packageName)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                    }
+                                    context.startActivity(intent)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = permissionButtonColors
+                        ) {
+                            Text(
+                                text = "スクショの権限設定を開く",
+                                color = Color.White
+                            )
+                        }
+                    }
                     if (!hasOverlayPermission && !isMIUI()) {
                         Button(
                             onClick = {
@@ -507,14 +546,24 @@ fun HomeScreen(
                         }
                         PermissionInfoRow(
                             icon = if (granted) Icons.Default.CheckCircle else Icons.Default.Warning,
-                            label = "通知",
-                            status = if (granted) "許可済み" else "未許可",
+                            label = "バックグラウンドの動作権限設定",
                             statusColor = notificationColor,
-                            supportingText = "キャプチャ状況を通知バーに表示します"
+                            supportingText = "スクショの撮影機能を、動かす為に権限の許可が必要です"
                         )
                         if (!granted) {
                             Button(
-                                onClick = { notificationPermissionState.launchPermissionRequest() },
+                                onClick = {
+                                    if (!isNotificationPermissionDenied) {
+                                        // 初回はダイアログを表示
+                                        notificationPermissionState.launchPermissionRequest()
+                                    } else {
+                                        // 拒否された場合は設定画面に遷移
+                                        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                        }
+                                        context.startActivity(intent)
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = permissionButtonColors
                             ) {
@@ -628,66 +677,6 @@ fun HomeScreen(
                     }
                 }
             }
-            if (!hasOverlayPermission && isMIUI()) {
-                Card(
-                    shape = cardShape,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f),
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = null
-                            )
-                            Text(
-                                text = "MIUI端末で権限を有効にする",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        Text(
-                            text = "設定 → アプリ → アプリを管理 → Skusho → その他の権限 → 他のアプリの上に表示 を開き、権限を許可してください。",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Button(
-                            onClick = {
-                                try {
-                                    val intent = Intent("miui.intent.action.APP_PERM_EDITOR").apply {
-                                        setClassName(
-                                            "com.miui.securitycenter",
-                                            "com.miui.permcenter.permissions.PermissionsEditorActivity"
-                                        )
-                                        putExtra("extra_pkgname", context.packageName)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = Uri.parse("package:${context.packageName}")
-                                    }
-                                    context.startActivity(intent)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.onErrorContainer,
-                                contentColor = MaterialTheme.colorScheme.errorContainer
-                            )
-                        ) {
-                            Text("MIUI権限設定を開く")
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -696,7 +685,7 @@ fun HomeScreen(
 private fun PermissionInfoRow(
     icon: ImageVector,
     label: String,
-    status: String,
+    status: String? = null,
     statusColor: Color,
     supportingText: String
 ) {
@@ -727,12 +716,14 @@ private fun PermissionInfoRow(
                     fontWeight = FontWeight.SemiBold,
                     color = contentColor
                 )
-                Text(
-                    text = status,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = statusColor,
-                    fontWeight = FontWeight.Medium
-                )
+                status?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = statusColor,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
             Text(
                 text = supportingText,

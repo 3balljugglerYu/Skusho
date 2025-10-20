@@ -158,7 +158,8 @@ fun OnboardingScreen(
                     }
                 )
                 OnboardingPage.NotificationPermission -> NotificationPermissionPage(
-                    permissionState = notificationPermissionState
+                    permissionState = notificationPermissionState,
+                    context = context
                 )
                 OnboardingPage.MIUIPermission -> MIUIPermissionPage(
                     hasPermission = hasOverlayPermission,
@@ -275,7 +276,7 @@ private fun WelcomePage() {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "Skusho へようこそ",
+            text = "スグショ へようこそ",
             style = MaterialTheme.typography.headlineLarge,
             color = PrimaryBlue,
             textAlign = TextAlign.Center
@@ -333,14 +334,14 @@ private fun OverlayPermissionPage(
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "画面オーバーレイ権限",
+            text = "スクショの権限設定",
             style = MaterialTheme.typography.headlineMedium,
             color = PrimaryBlue,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "本アプリ（Skusho）を選択し、権限を許可して下さい\n撮影ボタンを表示するために必要です",
+            text = "画面にスクショボタンを表示するために 権限の許可が必要です",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MutedText
@@ -377,7 +378,7 @@ private fun OverlayPermissionPage(
                         colors = outlineButtonColors(),
                         border = OutlineButtonBorder
                     ) {
-                        Text("権限状態を再確認")
+                        Text("権限状態を更新する")
                     }
                 }
             }
@@ -388,9 +389,20 @@ private fun OverlayPermissionPage(
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun NotificationPermissionPage(
-    permissionState: com.google.accompanist.permissions.PermissionState?
+    permissionState: com.google.accompanist.permissions.PermissionState?,
+    context: android.content.Context = LocalContext.current
 ) {
     val hasPermission = permissionState?.status?.isGranted ?: true
+    var isPermissionDenied by remember { mutableStateOf(false) }
+    
+    // 権限の状態を監視して、拒否された場合を検知
+    LaunchedEffect(permissionState?.status) {
+        permissionState?.status?.let { status ->
+            if (status is com.google.accompanist.permissions.PermissionStatus.Denied && !status.shouldShowRationale) {
+                isPermissionDenied = true
+            }
+        }
+    }
     
     Column(
         modifier = Modifier
@@ -405,14 +417,14 @@ private fun NotificationPermissionPage(
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "通知権限",
+            text = "バックグラウンドの動作権限設定",
             style = MaterialTheme.typography.headlineMedium,
             color = PrimaryBlue,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "サービスの状態確認と停止ボタンを\n通知バーに表示するために必要です",
+            text = "スクショの撮影機能を、動かす為に権限の許可が必要です。",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MutedText
@@ -438,7 +450,18 @@ private fun NotificationPermissionPage(
                 if (!hasPermission && permissionState != null) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { permissionState.launchPermissionRequest() },
+                        onClick = {
+                            if (!isPermissionDenied) {
+                                // 初回はダイアログを表示
+                                permissionState.launchPermissionRequest()
+                            } else {
+                                // 拒否された場合は設定画面に遷移
+                                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                }
+                                context.startActivity(intent)
+                            }
+                        },
                         colors = primaryButtonColors()
                     ) {
                         Text("権限を許可")
@@ -469,14 +492,14 @@ private fun MIUIPermissionPage(
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "MIUI 権限設定",
+            text = "スクショボタンの権限設定",
             style = MaterialTheme.typography.headlineMedium,
             color = PrimaryBlue,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "MIUI端末では専用の権限設定が必要です\n（オーバーレイ権限を含む）",
+            text = "画面にスクショボタンを表示するために必要です",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MutedText
@@ -502,7 +525,7 @@ private fun MIUIPermissionPage(
                     )
                 } else {
                     Text(
-                        text = "撮影ボタンの表示に必要な権限：",
+                        text = "「権限を開く」をタップして下記の２つを許可してください",
                         style = MaterialTheme.typography.titleMedium,
                         color = SecondaryBlue
                     )
@@ -513,12 +536,6 @@ private fun MIUIPermissionPage(
                         color = SecondaryBlue.copy(alpha = 0.9f)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "⚠️ この2つを許可することで、オーバーレイ権限も有効になります",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SecondaryBlue.copy(alpha = 0.75f)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "※ 他の項目（ホーム画面ショートカット、ロック画面に表示）は不要です",
                         style = MaterialTheme.typography.bodySmall,
@@ -544,7 +561,7 @@ private fun MIUIPermissionPage(
                         modifier = Modifier.fillMaxWidth(),
                         colors = secondaryButtonColors()
                     ) {
-                        Text("MIUI権限設定を開く")
+                        Text("権限を開く")
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(
@@ -553,7 +570,7 @@ private fun MIUIPermissionPage(
                         colors = outlineButtonColors(),
                         border = OutlineButtonBorder
                     ) {
-                        Text("権限状態を再確認")
+                        Text("権限状態を更新する")
                     }
                 }
             }
@@ -607,7 +624,7 @@ private fun ReadyPage() {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "1. 「撮影開始」をタップ\n2. 画面キャプチャの許可を承認\n3. 撮影ボタンが表示されます\n4. 撮影したい画面でボタンをタップ！",
+                    text = "1. 「撮影開始」をタップ\n2. スクショボタンが表示されます\n3. 撮影したい画面でボタンをタップ！",
                     style = MaterialTheme.typography.bodyMedium,
                     color = SecondaryBlue.copy(alpha = 0.85f)
                 )
