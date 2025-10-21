@@ -4,9 +4,11 @@ import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.yuhproducts.skusho.ads.RewardedAdManager
+import com.yuhproducts.skusho.config.RemoteConfigManager
 import com.yuhproducts.skusho.domain.repository.SettingsRepository
 import com.yuhproducts.skusho.service.CaptureService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,8 +25,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     application: Application,
     private val rewardedAdManager: RewardedAdManager,
-    @Suppress("unused")
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val remoteConfigManager: RemoteConfigManager
 ) : AndroidViewModel(application) {
     
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -35,6 +37,7 @@ class HomeViewModel @Inject constructor(
         observeRewardUnlockExpiry()
         loadRewardedAd()
         checkServiceStatus()
+        fetchRemoteConfig()
     }
     
     private fun observeRewardUnlockExpiry() {
@@ -49,7 +52,9 @@ class HomeViewModel @Inject constructor(
                         it.copy(
                             rewardUnlockExpiryMillis = expiryMillis,
                             isRewardUnlockActive = expiryMillis > now,
-                            rewardUnlockRemainingMillis = remaining
+                            rewardUnlockRemainingMillis = remaining,
+                            isAdRequired = remoteConfigManager.isAdRequired(),
+                            adStatusMessage = remoteConfigManager.getAdStatusMessage()
                         )
                     }
                     if (expiryMillis > now) {
@@ -60,6 +65,33 @@ class HomeViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+    
+    private fun fetchRemoteConfig() {
+        viewModelScope.launch {
+            try {
+                val success = remoteConfigManager.fetchAndActivate()
+                if (success) {
+                    updateAdRequiredState()
+                    Log.d(TAG, "Remote Config fetched successfully")
+                } else {
+                    Log.w(TAG, "Remote Config fetch failed, using defaults")
+                    updateAdRequiredState()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to fetch remote config", e)
+                updateAdRequiredState()
+            }
+        }
+    }
+    
+    private fun updateAdRequiredState() {
+        _uiState.update {
+            it.copy(
+                isAdRequired = remoteConfigManager.isAdRequired(),
+                adStatusMessage = remoteConfigManager.getAdStatusMessage()
+            )
         }
     }
     
@@ -217,6 +249,7 @@ class HomeViewModel @Inject constructor(
     }
     
     companion object {
+        private const val TAG = "HomeViewModel"
         private const val REWARD_UNLOCK_DURATION_MILLIS = 12 * 60 * 60 * 1000L
         private const val REWARD_UNLOCK_MONITOR_INTERVAL_MILLIS = 1000L
     }
@@ -229,5 +262,7 @@ data class HomeUiState(
     val isRewardUnlockActive: Boolean = false,
     val rewardUnlockRemainingMillis: Long = 0L,
     val isRewardAdReady: Boolean = false,
-    val isRewardAdLoading: Boolean = false
+    val isRewardAdLoading: Boolean = false,
+    val isAdRequired: Boolean = true,
+    val adStatusMessage: String = ""
 )

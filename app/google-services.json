@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "936536551991",
+    "project_id": "sgusyo",
+    "storage_bucket": "sgusyo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:936536551991:android:cc7df48d09530cb33b05b2",
+        "android_client_info": {
+          "package_name": "com.yuhproducts.skusho"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAY7GeqCPlvESkSHxUNTsi-f0_RdZ8y9sU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
