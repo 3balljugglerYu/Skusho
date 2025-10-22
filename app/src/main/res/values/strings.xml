@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Skusho</string>
+    <string name="app_name">スグショ</string>
     <string name="capture_screenshot">スクリーンショットを撮影</string>
     <string name="start_capture">撮影開始</string>
     <string name="stop_capture">撮影停止</string>
@@ -17,7 +17,7 @@
     <string name="unlock_loading">広告を読み込み中...</string>
     <string name="unlock_loading_message">広告を読み込み中です。しばらくしてから再度お試しください。</string>
     <string name="unlock_active_button_text">撮影解放中は視聴不要です</string>
-    <string name="onboarding_title">Skushoへようこそ</string>
+    <string name="onboarding_title">スグショへようこそ</string>
     <string name="onboarding_description">他のアプリを使用中でも、画面端の撮影ボタンをタップしてスクリーンショットを撮影できます。</string>
     <string name="onboarding_privacy">プライバシーについて</string>
     <string name="onboarding_privacy_description">このアプリはユーザーが明示的にボタンをタップした時のみスクリーンショットを撮影します。撮影した画像は端末のPictures/Screenshotsフォルダに保存され、外部へ送信されることはありません。</string>

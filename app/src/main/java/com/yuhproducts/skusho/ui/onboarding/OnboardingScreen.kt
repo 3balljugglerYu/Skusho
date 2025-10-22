@@ -276,7 +276,7 @@ private fun WelcomePage() {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "スグショ へようこそ",
+            text = "スグショへようこそ",
             style = MaterialTheme.typography.headlineLarge,
             color = PrimaryBlue,
             textAlign = TextAlign.Center
