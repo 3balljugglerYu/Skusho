@@ -19,7 +19,7 @@ class RemoteConfigManager @Inject constructor() {
     init {
         // Remote Configの設定
         val configSettings = FirebaseRemoteConfigSettings.Builder()
-            .setMinimumFetchIntervalInSeconds(3600) // 1時間（開発時は0に設定可能）
+            .setMinimumFetchIntervalInSeconds(3600) // 本番: 3600秒（1時間）
             .build()
         remoteConfig.setConfigSettingsAsync(configSettings)
         
