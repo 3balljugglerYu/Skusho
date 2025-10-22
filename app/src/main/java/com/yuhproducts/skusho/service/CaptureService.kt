@@ -23,8 +23,10 @@ import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import com.yuhproducts.skusho.MainActivity
 import com.yuhproducts.skusho.R
+import com.yuhproducts.skusho.config.RemoteConfigManager
 import com.yuhproducts.skusho.data.source.local.AppPreferences
 import com.yuhproducts.skusho.util.MediaStoreHelper
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,8 +36,13 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.min
 import java.nio.ByteBuffer
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class CaptureService : Service() {
+    
+    @Inject
+    lateinit var remoteConfigManager: RemoteConfigManager
     
     private var mediaProjection: MediaProjection? = null
     private var overlayManager: OverlayManager? = null
@@ -360,6 +367,12 @@ class CaptureService : Service() {
         rewardUnlockMonitorJob?.cancel()
         rewardUnlockMonitorJob = serviceScope.launch(Dispatchers.Default) {
             while (isActive) {
+                // 広告が不要な期間は監視をスキップ
+                if (!remoteConfigManager.isAdRequired()) {
+                    delay(REWARD_UNLOCK_MONITOR_INTERVAL_MILLIS)
+                    continue
+                }
+                
                 val expiryMillis = appPreferences.captureUnlockExpiryMillis.first()
                 if (!isRunning) {
                     delay(REWARD_UNLOCK_MONITOR_INTERVAL_MILLIS)

@@ -313,9 +313,10 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         val rewardUnlockActive = uiState.isRewardUnlockActive
+                        val isAdRequired = uiState.isAdRequired
                         val canCapture = hasOverlayPermission &&
                             (notificationPermissionState == null || notificationPermissionState.status.isGranted) &&
-                            rewardUnlockActive
+                            (!isAdRequired || rewardUnlockActive)
                         val isCapturing = uiState.isServiceRunning
                         val statusIcon = when {
                             isCapturing -> Icons.Default.CheckCircle
@@ -347,7 +348,7 @@ fun HomeScreen(
                                 canCapture -> "撮影開始ボタンをタップしてください！"
                                 !hasOverlayPermission -> "必要な権限を許可してください"
                                 notificationPermissionState != null && !notificationPermissionState.status.isGranted -> "通知の権限を許可してください"
-                                !rewardUnlockActive -> stringResource(R.string.unlock_required)
+                                isAdRequired && !rewardUnlockActive -> stringResource(R.string.unlock_required)
                                 else -> "撮影を開始する準備を進めてください"
                             }
                             Text(
@@ -403,7 +404,7 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                             enabled = hasOverlayPermission &&
                                     (notificationPermissionState == null || notificationPermissionState.status.isGranted) &&
-                                    uiState.isRewardUnlockActive,
+                                    (!uiState.isAdRequired || uiState.isRewardUnlockActive),
                             colors = primaryButtonColors
                         ) {
                             Icon(
@@ -585,6 +586,7 @@ fun HomeScreen(
 
                     Divider(color = secondaryBlue.copy(alpha = 0.1f))
 
+                    val isAdRequired = uiState.isAdRequired
                     val rewardUnlockActive = uiState.isRewardUnlockActive
                     val remainingMillis = uiState.rewardUnlockRemainingMillis
                     val unlockStatusColor = if (rewardUnlockActive) accentBlue else MaterialTheme.colorScheme.error
@@ -602,7 +604,9 @@ fun HomeScreen(
                     val watchAdDisabledLabel = stringResource(R.string.unlock_active_button_text)
                     val watchAdButtonEnabled = !uiState.isRewardAdLoading && !rewardUnlockActive
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // 広告が必要な場合のみ表示
+                    if (isAdRequired) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             text = stringResource(R.string.watch_ad_to_unlock),
                             style = MaterialTheme.typography.titleMedium,
@@ -673,6 +677,42 @@ fun HomeScreen(
                                 },
                                 color = Color.White
                             )
+                        }
+                        }
+                    } else {
+                        // 無料期間中のメッセージを表示
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "撮影機能の利用",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = secondaryBlue
+                            )
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = accentBlue.copy(alpha = 0.1f)
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = accentBlue,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                    Text(
+                                        text = uiState.adStatusMessage,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = secondaryBlue
+                                    )
+                                }
+                            }
                         }
                     }
                 }
