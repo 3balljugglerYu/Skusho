@@ -28,6 +28,7 @@ class AppPreferences @Inject constructor(
         private val IMAGE_QUALITY = intPreferencesKey("image_quality")
         private val CAPTURE_SOUND_ENABLED = booleanPreferencesKey("capture_sound_enabled")
         private val CONTINUOUS_SHOT_COUNT = intPreferencesKey("continuous_shot_count")
+        private val CONTINUOUS_SHOT_INTERVAL_MS = intPreferencesKey("continuous_shot_interval_ms")
         private val CAPTURE_UNLOCK_EXPIRY = longPreferencesKey("capture_unlock_expiry")
     }
     
@@ -83,6 +84,23 @@ class AppPreferences @Inject constructor(
     suspend fun setContinuousShotCount(count: Int) {
         context.dataStore.edit { preferences ->
             preferences[CONTINUOUS_SHOT_COUNT] = count.coerceIn(0, 5)
+        }
+    }
+
+    // 連写間隔（ミリ秒）
+    val continuousShotIntervalMs: Flow<Int> = context.dataStore.data.map { preferences ->
+        preferences[CONTINUOUS_SHOT_INTERVAL_MS] ?: 500  // デフォルト500ms
+    }
+
+    suspend fun setContinuousShotIntervalMs(intervalMs: Int) {
+        context.dataStore.edit { preferences ->
+            // 500, 750, 1000のいずれかに制限
+            val validInterval = when {
+                intervalMs <= 500 -> 500
+                intervalMs <= 750 -> 750
+                else -> 1000
+            }
+            preferences[CONTINUOUS_SHOT_INTERVAL_MS] = validInterval
         }
     }
 

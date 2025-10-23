@@ -20,16 +20,20 @@ object MediaStoreHelper {
      * @param bitmap 保存するBitmap
      * @param format 画像形式（"PNG" or "JPEG"）
      * @param quality JPEG品質（1-100）
+     * @param sequenceNumber 連番（連写時の順序を保証）
+     * @param captureTimestamp 撮影時のタイムスタンプ（連写時の順序保証用）
      * @return 保存されたURI、失敗時はnull
      */
     fun saveBitmap(
         context: Context,
         bitmap: Bitmap,
         format: String = "PNG",
-        quality: Int = 100
+        quality: Int = 100,
+        sequenceNumber: Int? = null,
+        captureTimestamp: Long = System.currentTimeMillis()
     ): Uri? {
-        Log.e("SkushoMediaStore", " MediaStoreHelper - saveBitmap called, format=$format, quality=$quality")
-        val filename = generateFilename(format)
+        Log.e("SkushoMediaStore", " MediaStoreHelper - saveBitmap called, format=$format, quality=$quality, sequenceNumber=$sequenceNumber, captureTimestamp=$captureTimestamp")
+        val filename = generateFilename(format, sequenceNumber)
         Log.e("SkushoMediaStore", " MediaStoreHelper - Filename: $filename")
         val mimeType = when (format.uppercase()) {
             "JPEG", "JPG" -> "image/jpeg"
@@ -37,11 +41,19 @@ object MediaStoreHelper {
         }
         Log.e("SkushoMediaStore", " MediaStoreHelper - MimeType: $mimeType")
         
+        // 連番がある場合は、撮影時のタイムスタンプに連番を加算して順序を保証
+        val dateTaken = if (sequenceNumber != null) {
+            captureTimestamp + (sequenceNumber - 1)  // 1枚目=+0, 2枚目=+1, 3枚目=+2...
+        } else {
+            captureTimestamp
+        }
+        Log.e("SkushoMediaStore", " MediaStoreHelper - DATE_TAKEN: $dateTaken (base: $captureTimestamp, offset: ${if (sequenceNumber != null) sequenceNumber - 1 else 0})")
+        
         val contentValues = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, filename)
             put(MediaStore.Images.Media.MIME_TYPE, mimeType)
             put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Screenshots")
-            put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
+            put(MediaStore.Images.Media.DATE_TAKEN, dateTaken)
             put(MediaStore.Images.Media.WIDTH, bitmap.width)
             put(MediaStore.Images.Media.HEIGHT, bitmap.height)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -91,16 +103,22 @@ object MediaStoreHelper {
     
     /**
      * ファイル名を生成
-     * 形式: yyyyMMdd_HHmmss_SSS.ext
+     * 形式: yyyyMMdd_HHmmss_SSS_seq.ext (連番付き) or yyyyMMdd_HHmmss_SSS.ext
      */
-    private fun generateFilename(format: String): String {
+    private fun generateFilename(format: String, sequenceNumber: Int? = null): String {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.getDefault())
             .format(Date())
         val extension = when (format.uppercase()) {
             "JPEG", "JPG" -> "jpg"
             else -> "png"
         }
-        return "Screenshot_$timestamp.$extension"
+        
+        return if (sequenceNumber != null) {
+            // 連写時は連番を追加（例: Screenshot_20231225_120000_001_01.png）
+            "Screenshot_${timestamp}_${String.format("%02d", sequenceNumber)}.$extension"
+        } else {
+            "Screenshot_$timestamp.$extension"
+        }
     }
 }
 

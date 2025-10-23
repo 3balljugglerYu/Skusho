@@ -47,6 +47,13 @@ class SettingsRepositoryImpl @Inject constructor(
         appPreferences.setContinuousShotCount(count)
     }
 
+    override fun getContinuousShotIntervalMs(): Flow<Int> = 
+        appPreferences.continuousShotIntervalMs
+
+    override suspend fun setContinuousShotIntervalMs(intervalMs: Int) {
+        appPreferences.setContinuousShotIntervalMs(intervalMs)
+    }
+
     override fun getCaptureUnlockExpiryMillis(): Flow<Long> =
         appPreferences.captureUnlockExpiryMillis
 

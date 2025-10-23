@@ -139,16 +139,20 @@ class CaptureService : Service() {
     private fun captureScreenshot() {
         Log.e("SkushoCapture", " CaptureService - captureScreenshot() called")
         serviceScope.launch(Dispatchers.Default) {
+            // 撮影したBitmapを一時保存するリスト（エラー時のクリーンアップのためtryブロック外で宣言）
+            val capturedBitmaps = mutableListOf<Bitmap>()
+            
             try {
                 Log.e("SkushoCapture", " CaptureService - Starting capture process")
+                
                 // オーバーレイを一時的に隠す
                 launch(Dispatchers.Main) {
                     Log.e("SkushoCapture", " CaptureService - Hiding overlay")
                     overlayManager?.hide()
                 }
                 
-                // 少し待機（オーバーレイが完全に消えるまで）
-                delay(200)
+                // 最適化: 待機時間を短縮（100ms → 50ms）
+                delay(50)
                 Log.e("SkushoCapture", " CaptureService - Overlay hidden, proceeding with capture")
                 
                 val projection = mediaProjection ?: throw IllegalStateException("MediaProjection not initialized")
@@ -190,64 +194,122 @@ class CaptureService : Service() {
                     Log.e("SkushoCapture", " CaptureService - Reusing existing VirtualDisplay")
                 }
                 
-                Log.e("SkushoCapture", " CaptureService - Waiting for frame")
+                // 連写設定を取得
+                val continuousShotCount = appPreferences.continuousShotCount.first()
+                val shotCount = if (continuousShotCount > 0) continuousShotCount else 1
+                Log.e("SkushoCapture", " CaptureService - Continuous shot count: $shotCount")
                 
-                // フレームを待機（複数回リトライ）
-                var image: Image? = null
-                var retryCount = 0
-                while (image == null && retryCount < 10) {
-                    delay(100)
-                    image = imageReader?.acquireLatestImage()
-                    retryCount++
-                    Log.e("SkushoCapture", " CaptureService - Retry $retryCount, image=$image")
-                }
+                // 撮影開始時のタイムスタンプを記録（順序保証用）
+                val captureTimestamp = System.currentTimeMillis()
+                Log.e("SkushoCapture", " CaptureService - Capture timestamp: $captureTimestamp")
                 
-                val bitmap = if (image != null) {
-                    Log.e("SkushoCapture", " CaptureService - Image acquired, converting to bitmap")
-                    val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                    val (width, height) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        val bounds = windowManager.currentWindowMetrics.bounds
-                        Pair(bounds.width(), bounds.height())
-                    } else {
-                        @Suppress("DEPRECATION")
-                        val metrics = DisplayMetrics()
-                        @Suppress("DEPRECATION")
-                        windowManager.defaultDisplay.getMetrics(metrics)
-                        Pair(metrics.widthPixels, metrics.heightPixels)
+                // 連写設定の間隔を取得
+                val shotIntervalMs = appPreferences.continuousShotIntervalMs.first()
+                Log.e("SkushoCapture", " CaptureService - Shot interval: ${shotIntervalMs}ms")
+                
+                // 連写処理：撮影のみを高速で実行
+                repeat(shotCount) { index ->
+                    Log.e("SkushoCapture", " CaptureService - Capturing shot ${index + 1}/$shotCount")
+                    
+                    // 2枚目以降は設定された間隔で待機
+                    if (index > 0) {
+                        delay(shotIntervalMs.toLong())
                     }
-                    imageToBitmap(image, width, height)
-                } else {
-                    Log.e("SkushoCapture", " CaptureService - Failed to acquire image after $retryCount retries")
-                    null
-                }
-                
-                image?.close()
-                // VirtualDisplayとImageReaderは使い回すので解放しない
-                
-                // 保存
-                if (bitmap != null) {
-                    Log.e("SkushoCapture", " CaptureService - Bitmap captured, size: ${bitmap.width}x${bitmap.height}")
-                    val uri = MediaStoreHelper.saveBitmap(this@CaptureService, bitmap)
-                    if (uri != null) {
-                        Log.e("SkushoCapture", " CaptureService - Saved to MediaStore: $uri")
-                        showSuccessNotification(uri.toString())
-                    } else {
-                        Log.e("SkushoCapture", " CaptureService - Failed to save to MediaStore")
+                    
+                    Log.e("SkushoCapture", " CaptureService - Waiting for frame")
+                    
+                    // フレームを待機（1枚目は最速化）
+                    var image: Image? = null
+                    var retryCount = 0
+                    val maxRetries = if (index == 0) 5 else 3  // 1枚目は5回に短縮
+                    while (image == null && retryCount < maxRetries) {
+                        delay(if (index == 0) 50 else 50)  // 1枚目も50msに短縮
+                        image = imageReader?.acquireLatestImage()
+                        retryCount++
+                        Log.e("SkushoCapture", " CaptureService - Retry $retryCount/$maxRetries, image=$image")
                     }
-                    bitmap.recycle()
-                } else {
-                    Log.e("SkushoCapture", " CaptureService - Bitmap is null")
+                    
+                    val bitmap = if (image != null) {
+                        Log.e("SkushoCapture", " CaptureService - Image acquired, converting to bitmap")
+                        val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                        val (width, height) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            val bounds = windowManager.currentWindowMetrics.bounds
+                            Pair(bounds.width(), bounds.height())
+                        } else {
+                            @Suppress("DEPRECATION")
+                            val metrics = DisplayMetrics()
+                            @Suppress("DEPRECATION")
+                            windowManager.defaultDisplay.getMetrics(metrics)
+                            Pair(metrics.widthPixels, metrics.heightPixels)
+                        }
+                        imageToBitmap(image, width, height)
+                    } else {
+                        Log.e("SkushoCapture", " CaptureService - Failed to acquire image after $retryCount retries")
+                        null
+                    }
+                    
+                    image?.close()
+                    
+                    // Bitmapをリストに追加（保存処理は後で一括実行）
+                    if (bitmap != null) {
+                        capturedBitmaps.add(bitmap)
+                        Log.e("SkushoCapture", " CaptureService - Bitmap captured and queued, size: ${bitmap.width}x${bitmap.height}")
+                    } else {
+                        Log.e("SkushoCapture", " CaptureService - Bitmap is null")
+                    }
                 }
                 
-                // オーバーレイを再表示
+                Log.e("SkushoCapture", " CaptureService - All shots captured: ${capturedBitmaps.size}/$shotCount")
+                
+                // オーバーレイを先に再表示（保存処理を待たない）
                 launch(Dispatchers.Main) {
                     Log.e("SkushoCapture", " CaptureService - Re-showing overlay")
                     overlayManager?.showAfterCapture()
                 }
                 
+                // 保存処理をバックグラウンドで実行
+                if (capturedBitmaps.isNotEmpty()) {
+                    launch(Dispatchers.IO) {
+                        var savedCount = 0
+                        // 連番を付けて順次保存（forEachIndexedで順序を保証）
+                        capturedBitmaps.forEachIndexed { index, bitmap ->
+                            // 連写時のみ連番を付ける（1枚のみの場合は連番なし）
+                            val sequenceNumber = if (capturedBitmaps.size > 1) index + 1 else null
+                            val uri = MediaStoreHelper.saveBitmap(
+                                this@CaptureService, 
+                                bitmap,
+                                sequenceNumber = sequenceNumber,
+                                captureTimestamp = captureTimestamp
+                            )
+                            if (uri != null) {
+                                savedCount++
+                                Log.e("SkushoCapture", " CaptureService - Saved to MediaStore: $uri (seq: $sequenceNumber)")
+                            } else {
+                                Log.e("SkushoCapture", " CaptureService - Failed to save to MediaStore")
+                            }
+                            bitmap.recycle()
+                        }
+                        
+                        // 保存完了後に通知を表示
+                        if (savedCount > 0) {
+                            Log.e("SkushoCapture", " CaptureService - All bitmaps saved: $savedCount/${capturedBitmaps.size}")
+                            showSuccessNotification(savedCount)
+                        }
+                    }
+                }
+                
             } catch (e: Exception) {
                 Log.e("SkushoCapture", " CaptureService - Error: ${e.message}", e)
                 e.printStackTrace()
+                
+                // エラー時にBitmapをクリーンアップ
+                val bitmapCount = capturedBitmaps.size
+                capturedBitmaps.forEach { bitmap ->
+                    bitmap.recycle()
+                }
+                capturedBitmaps.clear()
+                Log.e("SkushoCapture", " CaptureService - Cleaned up $bitmapCount bitmaps after error")
+                
                 // エラーが発生してもオーバーレイは再表示
                 launch(Dispatchers.Main) {
                     Log.e("SkushoCapture", " CaptureService - Re-showing overlay after error")
@@ -311,11 +373,16 @@ class CaptureService : Service() {
             .build()
     }
     
-    private fun showSuccessNotification(uri: String) {
+    private fun showSuccessNotification(shotCount: Int = 1) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val contentText = if (shotCount > 1) {
+            "${shotCount}枚のスクリーンショットを Pictures/Screenshots に保存しました"
+        } else {
+            "Pictures/Screenshots に保存されました"
+        }
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("スクリーンショット保存完了")
-            .setContentText("Pictures/Screenshots に保存されました")
+            .setContentText(contentText)
             .setSmallIcon(android.R.drawable.ic_menu_gallery)
             .setAutoCancel(true)
             .build()
