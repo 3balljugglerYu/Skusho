@@ -4,10 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yuhproducts.skusho.domain.usecase.settings.GetCaptureSoundEnabledUseCase
 import com.yuhproducts.skusho.domain.usecase.settings.GetContinuousShotCountUseCase
+import com.yuhproducts.skusho.domain.usecase.settings.GetContinuousShotIntervalUseCase
 import com.yuhproducts.skusho.domain.usecase.settings.GetImageFormatUseCase
 import com.yuhproducts.skusho.domain.usecase.settings.GetImageQualityUseCase
 import com.yuhproducts.skusho.domain.usecase.settings.SetCaptureSoundEnabledUseCase
 import com.yuhproducts.skusho.domain.usecase.settings.SetContinuousShotCountUseCase
+import com.yuhproducts.skusho.domain.usecase.settings.SetContinuousShotIntervalUseCase
 import com.yuhproducts.skusho.domain.usecase.settings.SetImageFormatUseCase
 import com.yuhproducts.skusho.domain.usecase.settings.SetImageQualityUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +28,9 @@ class SettingsViewModel @Inject constructor(
     private val getCaptureSoundEnabledUseCase: GetCaptureSoundEnabledUseCase,
     private val setCaptureSoundEnabledUseCase: SetCaptureSoundEnabledUseCase,
     private val getContinuousShotCountUseCase: GetContinuousShotCountUseCase,
-    private val setContinuousShotCountUseCase: SetContinuousShotCountUseCase
+    private val setContinuousShotCountUseCase: SetContinuousShotCountUseCase,
+    private val getContinuousShotIntervalUseCase: GetContinuousShotIntervalUseCase,
+    private val setContinuousShotIntervalUseCase: SetContinuousShotIntervalUseCase
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -57,6 +61,11 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(continuousShotCount = count)
             }
         }
+        viewModelScope.launch {
+            getContinuousShotIntervalUseCase().collect { intervalMs ->
+                _uiState.value = _uiState.value.copy(continuousShotIntervalMs = intervalMs)
+            }
+        }
     }
     
     fun onImageFormatChanged(format: String) {
@@ -82,11 +91,18 @@ class SettingsViewModel @Inject constructor(
             setContinuousShotCountUseCase(count)
         }
     }
+    
+    fun onContinuousShotIntervalChanged(intervalMs: Int) {
+        viewModelScope.launch {
+            setContinuousShotIntervalUseCase(intervalMs)
+        }
+    }
 }
 
 data class SettingsUiState(
     val imageFormat: String = "PNG",
     val imageQuality: Int = 100,
     val captureSoundEnabled: Boolean = false,
-    val continuousShotCount: Int = 0
+    val continuousShotCount: Int = 0,
+    val continuousShotIntervalMs: Int = 500
 )

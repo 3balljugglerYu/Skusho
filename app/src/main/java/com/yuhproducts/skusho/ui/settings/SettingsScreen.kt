@@ -1,5 +1,6 @@
 package com.yuhproducts.skusho.ui.settings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.yuhproducts.skusho.R
@@ -40,7 +42,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -60,79 +62,12 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // 画像形式
-            SettingSection(title = stringResource(R.string.image_format)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = uiState.imageFormat == "PNG",
-                        onClick = { viewModel.onImageFormatChanged("PNG") }
-                    )
-                    Text("PNG", modifier = Modifier.padding(start = 8.dp))
-                    
-                    Spacer(modifier = Modifier.width(24.dp))
-                    
-                    RadioButton(
-                        selected = uiState.imageFormat == "JPEG",
-                        onClick = { viewModel.onImageFormatChanged("JPEG") }
-                    )
-                    Text("JPEG", modifier = Modifier.padding(start = 8.dp))
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 画像品質（JPEG の場合のみ）
-            if (uiState.imageFormat == "JPEG") {
-                SettingSection(
-                    title = "画像品質: ${uiState.imageQuality}%"
-                ) {
-                    Slider(
-                        value = uiState.imageQuality.toFloat(),
-                        onValueChange = { viewModel.onImageQualityChanged(it.toInt()) },
-                        valueRange = 50f..100f,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = "低品質 ← → 高品質",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            
-            // 撮影音
-            SettingSection(title = stringResource(R.string.capture_sound)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (uiState.captureSoundEnabled) "ON" else "OFF",
-                        modifier = Modifier.weight(1f)
-                    )
-                    Switch(
-                        checked = uiState.captureSoundEnabled,
-                        onCheckedChange = { viewModel.onCaptureSoundChanged(it) }
-                    )
-                }
-                Text(
-                    text = "シャッター音を再生します",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
+            // Spacer(modifier = Modifier.height(16.dp))
+
             // 連写
             SettingSection(
                 title = "${stringResource(R.string.continuous_shot)}: ${
-                    if (uiState.continuousShotCount == 0) "OFF" 
+                    if (uiState.continuousShotCount == 0) "OFF"
                     else "${uiState.continuousShotCount}枚"
                 }"
             ) {
@@ -140,13 +75,66 @@ fun SettingsScreen(
                     value = uiState.continuousShotCount.toFloat(),
                     onValueChange = { viewModel.onContinuousShotCountChanged(it.toInt()) },
                     valueRange = 0f..5f,
-                    steps = 4,
+                    steps = 5,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    text = "1回のタップで複数枚撮影します（300ms間隔）",
+                    text = "1回のタップで複数枚撮影します",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 連写速度
+            SettingSection(
+                title = "${stringResource(R.string.continuous_shot_speed)}: ${formatSpeed(uiState.continuousShotIntervalMs)}"
+            ) {
+                Slider(
+                    value = speedToIndex(uiState.continuousShotIntervalMs).toFloat(),
+                    onValueChange = { 
+                        viewModel.onContinuousShotIntervalChanged(indexToSpeed(it.toInt())) 
+                    },
+                    valueRange = 0f..2f,  // 3段階
+                    steps = 1,  // 0, 1, 2
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = uiState.continuousShotCount > 0  // 連写がONの時のみ有効
+                )
+                
+                // 選択肢のラベル表示
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "500ms\n${stringResource(R.string.speed_fast)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "750ms\n${stringResource(R.string.speed_normal)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "1.0秒\n${stringResource(R.string.speed_stable)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                
+                // 説明文
+                Text(
+                    text = when (uiState.continuousShotIntervalMs) {
+                        500 -> "素早く連写します"
+                        750 -> "バランスの取れた速度です"
+                        1000 -> "確実に撮影します"
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
         }
@@ -173,4 +161,28 @@ private fun SettingSection(
             content()
         }
     }
+}
+
+// インデックス → ミリ秒
+private fun indexToSpeed(index: Int): Int = when (index) {
+    0 -> 500
+    1 -> 750
+    2 -> 1000
+    else -> 500
+}
+
+// ミリ秒 → インデックス
+private fun speedToIndex(speedMs: Int): Int = when (speedMs) {
+    500 -> 0
+    750 -> 1
+    1000 -> 2
+    else -> 0
+}
+
+// 表示用フォーマット
+private fun formatSpeed(speedMs: Int): String = when (speedMs) {
+    500 -> "500ms"
+    750 -> "750ms"
+    1000 -> "1.0秒"
+    else -> "500ms"
 }
