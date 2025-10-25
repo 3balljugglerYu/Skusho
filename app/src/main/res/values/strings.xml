@@ -28,7 +28,7 @@
     <string name="continuous_shot_speed">連写速度</string>
     <string name="speed_fast">速い</string>
     <string name="speed_normal">標準</string>
-    <string name="speed_stable">安定</string>
+    <string name="speed_stable">遅い</string>
     <string name="status_waiting">待機中</string>
     <string name="status_capturing">撮影中</string>
     <string name="admob_app_id">ca-app-pub-2716829166250639~7777127281</string>

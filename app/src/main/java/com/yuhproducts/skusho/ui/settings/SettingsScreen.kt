@@ -50,16 +50,39 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    
+    // HomeScreenと同じカラーパレット
+    val primaryBlue = Color(0xFF1565C0)
+    val secondaryBlue = Color(0xFF0D47A1)
+    val accentBlue = Color(0xFF1E88E5)
+    val paleBlue = Color(0xFFE3F2FD)
+    val softBlue = Color(0xFFF5F9FF)
 
     Scaffold(
+        containerColor = Color.White,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
+                title = { 
+                    Text(
+                        text = stringResource(R.string.settings),
+                        color = primaryBlue,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = "戻る",
+                            tint = primaryBlue
+                        )
                     }
-                }
+                },
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = primaryBlue,
+                    navigationIconContentColor = primaryBlue
+                )
             )
         }
     ) { paddingValues ->
@@ -68,7 +91,8 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Spacer(modifier = Modifier.height(16.dp))
 
@@ -77,7 +101,11 @@ fun SettingsScreen(
                 title = "${stringResource(R.string.continuous_shot)}: ${
                     if (uiState.continuousShotCount == 0) "OFF"
                     else "${uiState.continuousShotCount}枚"
-                }"
+                }",
+                primaryBlue = primaryBlue,
+                secondaryBlue = secondaryBlue,
+                accentBlue = accentBlue,
+                paleBlue = paleBlue
             ) {
                 // モダンなセグメントコントロール
                 Column(
@@ -89,23 +117,24 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .height(48.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .background(secondaryBlue.copy(alpha = 0.1f))
                             .padding(4.dp)
                     ) {
-                        listOf("OFF", "1", "2", "3", "4", "5").forEachIndexed { index, label ->
+                        listOf("OFF", "2", "3", "4", "5").forEachIndexed { index, label ->
+                            val shotCount = if (index == 0) 0 else index + 1  // OFF=0, 2=2, 3=3, 4=4, 5=5
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(
-                                        if (uiState.continuousShotCount == index) {
-                                            MaterialTheme.colorScheme.primary
+                                        if (uiState.continuousShotCount == shotCount) {
+                                            accentBlue
                                         } else {
                                             Color.Transparent
                                         }
                                     )
-                                    .clickable { viewModel.onContinuousShotCountChanged(index) }
+                                    .clickable { viewModel.onContinuousShotCountChanged(shotCount) }
                                     .padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -113,10 +142,10 @@ fun SettingsScreen(
                                     text = label,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
-                                    color = if (uiState.continuousShotCount == index) {
-                                        MaterialTheme.colorScheme.onPrimary
+                                    color = if (uiState.continuousShotCount == shotCount) {
+                                        Color.White
                                     } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                        secondaryBlue
                                     }
                                 )
                             }
@@ -127,7 +156,7 @@ fun SettingsScreen(
                     Text(
                         text = "1回のタップで複数枚撮影します",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = secondaryBlue.copy(alpha = 0.75f),
                         modifier = Modifier.padding(top = 12.dp)
                     )
                 }
@@ -137,7 +166,11 @@ fun SettingsScreen(
 
             // 連写速度
             SettingSection(
-                title = "${stringResource(R.string.continuous_shot_speed)}: ${formatSpeed(uiState.continuousShotIntervalMs)}"
+                title = "${stringResource(R.string.continuous_shot_speed)}: ${formatSpeed(uiState.continuousShotIntervalMs)}",
+                primaryBlue = primaryBlue,
+                secondaryBlue = secondaryBlue,
+                accentBlue = accentBlue,
+                paleBlue = paleBlue
             ) {
                 // モダンなセグメントコントロール
                 Column(
@@ -151,9 +184,9 @@ fun SettingsScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .background(
                                 if (uiState.continuousShotCount > 0) {
-                                    MaterialTheme.colorScheme.surfaceVariant
+                                    secondaryBlue.copy(alpha = 0.1f)
                                 } else {
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    secondaryBlue.copy(alpha = 0.05f)
                                 }
                             )
                             .padding(4.dp)
@@ -170,7 +203,7 @@ fun SettingsScreen(
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(
                                         if (uiState.continuousShotIntervalMs == value) {
-                                            MaterialTheme.colorScheme.primary
+                                            accentBlue
                                         } else {
                                             Color.Transparent
                                         }
@@ -187,9 +220,9 @@ fun SettingsScreen(
                                     text = label,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (uiState.continuousShotIntervalMs == value) {
-                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                        Color.White
                                     } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                        secondaryBlue.copy(
                                             alpha = if (uiState.continuousShotCount > 0) 0.7f else 0.3f
                                         )
                                     }
@@ -207,7 +240,7 @@ fun SettingsScreen(
                             else -> ""
                         },
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = secondaryBlue.copy(alpha = 0.75f),
                         modifier = Modifier.padding(top = 12.dp)
                     )
                 }
@@ -219,20 +252,31 @@ fun SettingsScreen(
 @Composable
 private fun SettingSection(
     title: String,
+    primaryBlue: Color,
+    secondaryBlue: Color,
+    accentBlue: Color,
+    paleBlue: Color,
     content: @Composable () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = paleBlue,
+            contentColor = secondaryBlue
+        ),
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
+                fontWeight = FontWeight.SemiBold,
+                color = secondaryBlue
             )
-            Spacer(modifier = Modifier.height(8.dp))
             content()
         }
     }
