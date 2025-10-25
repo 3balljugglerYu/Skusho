@@ -1,6 +1,10 @@
 package com.yuhproducts.skusho.ui.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,7 +34,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -71,18 +79,58 @@ fun SettingsScreen(
                     else "${uiState.continuousShotCount}枚"
                 }"
             ) {
-                Slider(
-                    value = uiState.continuousShotCount.toFloat(),
-                    onValueChange = { viewModel.onContinuousShotCountChanged(it.toInt()) },
-                    valueRange = 0f..5f,
-                    steps = 5,
+                // モダンなセグメントコントロール
+                Column(
                     modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    text = "1回のタップで複数枚撮影します",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                ) {
+                    // セグメントボタン
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(4.dp)
+                    ) {
+                        listOf("OFF", "1", "2", "3", "4", "5").forEachIndexed { index, label ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (uiState.continuousShotCount == index) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            Color.Transparent
+                                        }
+                                    )
+                                    .clickable { viewModel.onContinuousShotCountChanged(index) }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (uiState.continuousShotCount == index) {
+                                        MaterialTheme.colorScheme.onPrimary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    
+                    // 説明文
+                    Text(
+                        text = "1回のタップで複数枚撮影します",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -91,51 +139,78 @@ fun SettingsScreen(
             SettingSection(
                 title = "${stringResource(R.string.continuous_shot_speed)}: ${formatSpeed(uiState.continuousShotIntervalMs)}"
             ) {
-                Slider(
-                    value = speedToIndex(uiState.continuousShotIntervalMs).toFloat(),
-                    onValueChange = { 
-                        viewModel.onContinuousShotIntervalChanged(indexToSpeed(it.toInt())) 
-                    },
-                    valueRange = 0f..2f,  // 3段階
-                    steps = 1,  // 0, 1, 2
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = uiState.continuousShotCount > 0  // 連写がONの時のみ有効
-                )
-                
-                // 選択肢のラベル表示
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                // モダンなセグメントコントロール
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
+                    // セグメントボタン
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (uiState.continuousShotCount > 0) {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                }
+                            )
+                            .padding(4.dp)
+                    ) {
+                        listOf(
+                            Pair(stringResource(R.string.speed_fast), 500),
+                            Pair(stringResource(R.string.speed_normal), 750),
+                            Pair(stringResource(R.string.speed_stable), 1000)
+                        ).forEach { (label, value) ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (uiState.continuousShotIntervalMs == value) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            Color.Transparent
+                                        }
+                                    )
+                                    .clickable(
+                                        enabled = uiState.continuousShotCount > 0
+                                    ) { 
+                                        viewModel.onContinuousShotIntervalChanged(value) 
+                                    }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (uiState.continuousShotIntervalMs == value) {
+                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                            alpha = if (uiState.continuousShotCount > 0) 0.7f else 0.3f
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    
+                    // 説明文
                     Text(
-                        text = "500ms\n${stringResource(R.string.speed_fast)}",
+                        text = when (uiState.continuousShotIntervalMs) {
+                            500 -> "約0.5秒の間隔で連写します"
+                            750 -> "約0.75秒の間隔で連写します"
+                            1000 -> "約1秒の間隔で連写します"
+                            else -> ""
+                        },
                         style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "750ms\n${stringResource(R.string.speed_normal)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "1.0秒\n${stringResource(R.string.speed_stable)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 12.dp)
                     )
                 }
-                
-                // 説明文
-                Text(
-                    text = when (uiState.continuousShotIntervalMs) {
-                        500 -> "素早く連写します"
-                        750 -> "バランスの取れた速度です"
-                        1000 -> "確実に撮影します"
-                        else -> ""
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
             }
         }
     }
@@ -183,6 +258,6 @@ private fun speedToIndex(speedMs: Int): Int = when (speedMs) {
 private fun formatSpeed(speedMs: Int): String = when (speedMs) {
     500 -> "500ms"
     750 -> "750ms"
-    1000 -> "1.0秒"
+    1000 -> "1.0s"
     else -> "500ms"
 }
